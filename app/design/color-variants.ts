@@ -1,8 +1,9 @@
-// src/lib/design/color-variants.ts
+// app/design/color-variants.ts
 //
-// Variant = tema kelas Tailwind per WARNA (bukan per peran/komponen).
-// Pengelompokan berdasarkan makna ada di semantic-colors.ts.
-// Token (royal-700, hijau-bg, shadow-hard-*, dst.) didefinisikan di colors.css.
+// Variant = a set of Tailwind classes per COLOR (not per role/component).
+// Grouping by meaning lives in semantic-colors.ts.
+// Tokens are defined in colors.css. Text, border, and badge classes use THEME tokens (ink, link,
+// pair-*), so they follow light/dark mode; solid `bg` fills are fixed accents in both themes.
 
 export type ColorVariant =
   | "navy"
@@ -33,9 +34,9 @@ export interface ColorVariantTheme {
   bgDarkHover: string;
   bgDarkGroupHover: string;
 
-  /** teks di atas `bg` solid */
+  /** text on top of a solid `bg` */
   onBg: string;
-  /** hard shadow dari Figma */
+  /** hard shadow from Figma */
   shadow: string;
 
   border: string;
@@ -55,9 +56,9 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
   navy: {
     base: "navy",
 
-    text: "text-navy-900",
-    textHover: "hover:text-navy-900",
-    textGroupHover: "group-hover:text-navy-900",
+    text: "text-ink",
+    textHover: "hover:text-ink",
+    textGroupHover: "group-hover:text-ink",
 
     bg: "bg-navy-900",
     bgHover: "hover:bg-navy-800",
@@ -74,25 +75,25 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     onBg: "text-white",
     shadow: "shadow-hard-navy",
 
-    border: "border-navy-900",
+    border: "border-line-strong",
     borderHover: "hover:border-navy-800",
     borderGroupHover: "group-hover:border-navy-800",
 
-    badgeText: "text-navy-900",
+    badgeText: "text-ink",
     badgeBg: "bg-navy-100",
     badgeBgGroupHover: "group-hover:bg-navy-100",
 
-    icon: "text-navy-900",
-    iconHover: "group-hover:text-navy-900",
+    icon: "text-ink",
+    iconHover: "group-hover:text-ink",
   },
 
-  // Biru #1f4fd8
+  // Blue #1f4fd8
   royal: {
     base: "royal",
 
-    text: "text-royal-700",
-    textHover: "hover:text-royal-700",
-    textGroupHover: "group-hover:text-royal-700",
+    text: "text-link",
+    textHover: "hover:text-link",
+    textGroupHover: "group-hover:text-link",
 
     bg: "bg-royal-700",
     bgHover: "hover:bg-royal-800",
@@ -117,7 +118,7 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     badgeBg: "bg-royal-100",
     badgeBgGroupHover: "group-hover:bg-royal-100",
 
-    icon: "text-royal-700",
+    icon: "text-link",
     iconHover: "group-hover:text-royal-800",
   },
 
@@ -141,7 +142,7 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     bgDarkHover: "hover:bg-periwinkle-900",
     bgDarkGroupHover: "group-hover:bg-periwinkle-900",
 
-    onBg: "text-navy-900",
+    onBg: "text-on-accent",
     shadow: "shadow-hard-navy",
 
     border: "border-periwinkle-400",
@@ -156,13 +157,13 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     iconHover: "group-hover:text-periwinkle-800",
   },
 
-  // Ungu #5b3bb5
+  // Purple #5b3bb5
   grape: {
     base: "grape",
 
-    text: "text-grape-700",
-    textHover: "hover:text-grape-700",
-    textGroupHover: "group-hover:text-grape-700",
+    text: "text-ink-accent",
+    textHover: "hover:text-ink-accent",
+    textGroupHover: "group-hover:text-ink-accent",
 
     bg: "bg-grape-700",
     bgHover: "hover:bg-grape-800",
@@ -187,7 +188,7 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     badgeBg: "bg-grape-100",
     badgeBgGroupHover: "group-hover:bg-grape-100",
 
-    icon: "text-grape-700",
+    icon: "text-ink-accent",
     iconHover: "group-hover:text-grape-800",
   },
 
@@ -195,9 +196,9 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
   mint: {
     base: "mint",
 
-    text: "text-mint-700",
-    textHover: "hover:text-mint-700",
-    textGroupHover: "group-hover:text-mint-700",
+    text: "text-pair-green-fg",
+    textHover: "hover:text-pair-green-fg",
+    textGroupHover: "group-hover:text-pair-green-fg",
 
     bg: "bg-mint-300",
     bgHover: "hover:bg-mint-400",
@@ -211,28 +212,28 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     bgDarkHover: "hover:bg-mint-900",
     bgDarkGroupHover: "group-hover:bg-mint-900",
 
-    onBg: "text-navy-900",
+    onBg: "text-on-accent",
     shadow: "shadow-hard-navy",
 
     border: "border-mint-300",
     borderHover: "hover:border-mint-400",
     borderGroupHover: "group-hover:border-mint-400",
 
-    badgeText: "text-hijau-fg",
-    badgeBg: "bg-hijau-bg",
-    badgeBgGroupHover: "group-hover:bg-hijau-bg",
+    badgeText: "text-pair-green-fg",
+    badgeBg: "bg-pair-green-bg",
+    badgeBgGroupHover: "group-hover:bg-pair-green-bg",
 
-    icon: "text-mint-700",
+    icon: "text-pair-green-fg",
     iconHover: "group-hover:text-mint-800",
   },
 
-  // Kuning #ffd43b
+  // Yellow #ffd43b
   sun: {
     base: "sun",
 
-    text: "text-sun-700",
-    textHover: "hover:text-sun-700",
-    textGroupHover: "group-hover:text-sun-700",
+    text: "text-pair-yellow-fg",
+    textHover: "hover:text-pair-yellow-fg",
+    textGroupHover: "group-hover:text-pair-yellow-fg",
 
     bg: "bg-sun-200",
     bgHover: "hover:bg-sun-300",
@@ -246,28 +247,28 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     bgDarkHover: "hover:bg-sun-900",
     bgDarkGroupHover: "group-hover:bg-sun-900",
 
-    onBg: "text-navy-900",
+    onBg: "text-on-accent",
     shadow: "shadow-hard-sun",
 
     border: "border-sun-200",
     borderHover: "hover:border-sun-300",
     borderGroupHover: "group-hover:border-sun-300",
 
-    badgeText: "text-kuning-fg",
-    badgeBg: "bg-kuning-bg",
-    badgeBgGroupHover: "group-hover:bg-kuning-bg",
+    badgeText: "text-pair-yellow-fg",
+    badgeBg: "bg-pair-yellow-bg",
+    badgeBgGroupHover: "group-hover:bg-pair-yellow-bg",
 
-    icon: "text-sun-700",
+    icon: "text-pair-yellow-fg",
     iconHover: "group-hover:text-sun-800",
   },
 
-  // Oranye #f2862e
+  // Orange #f2862e
   tangerine: {
     base: "tangerine",
 
-    text: "text-tangerine-700",
-    textHover: "hover:text-tangerine-700",
-    textGroupHover: "group-hover:text-tangerine-700",
+    text: "text-pair-orange-fg",
+    textHover: "hover:text-pair-orange-fg",
+    textGroupHover: "group-hover:text-pair-orange-fg",
 
     bg: "bg-tangerine-400",
     bgHover: "hover:bg-tangerine-500",
@@ -281,32 +282,32 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     bgDarkHover: "hover:bg-tangerine-900",
     bgDarkGroupHover: "group-hover:bg-tangerine-900",
 
-    onBg: "text-navy-900",
+    onBg: "text-on-accent",
     shadow: "shadow-hard-navy",
 
     border: "border-tangerine-400",
     borderHover: "hover:border-tangerine-500",
     borderGroupHover: "group-hover:border-tangerine-500",
 
-    badgeText: "text-oranye-fg",
-    badgeBg: "bg-oranye-bg",
-    badgeBgGroupHover: "group-hover:bg-oranye-bg",
+    badgeText: "text-pair-orange-fg",
+    badgeBg: "bg-pair-orange-bg",
+    badgeBgGroupHover: "group-hover:bg-pair-orange-bg",
 
-    icon: "text-tangerine-700",
+    icon: "text-pair-orange-fg",
     iconHover: "group-hover:text-tangerine-800",
   },
 
-  // Abu #3b4a5c (pasangan status abu)
+  // Gray #3b4a5c (gray status pair)
   slate: {
     base: "slate",
 
-    text: "text-slate-700",
-    textHover: "hover:text-slate-700",
-    textGroupHover: "group-hover:text-slate-700",
+    text: "text-pair-gray-fg",
+    textHover: "hover:text-pair-gray-fg",
+    textGroupHover: "group-hover:text-pair-gray-fg",
 
     bg: "bg-slate-700",
     bgHover: "hover:bg-slate-800",
-    bgLight: "bg-abu-bg",
+    bgLight: "bg-pair-gray-bg",
     bgLightHover: "hover:bg-slate-200",
     bgLightGroupHover: "group-hover:bg-slate-200",
     bgNormal: "bg-slate-600",
@@ -323,11 +324,11 @@ export const COLOR_VARIANTS: Record<ColorVariant, ColorVariantTheme> = {
     borderHover: "hover:border-slate-400",
     borderGroupHover: "group-hover:border-slate-400",
 
-    badgeText: "text-abu-fg",
-    badgeBg: "bg-abu-bg",
-    badgeBgGroupHover: "group-hover:bg-abu-bg",
+    badgeText: "text-pair-gray-fg",
+    badgeBg: "bg-pair-gray-bg",
+    badgeBgGroupHover: "group-hover:bg-pair-gray-bg",
 
-    icon: "text-slate-700",
+    icon: "text-pair-gray-fg",
     iconHover: "group-hover:text-slate-800",
   },
 };
