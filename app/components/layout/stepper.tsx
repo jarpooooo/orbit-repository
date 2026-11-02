@@ -1,39 +1,45 @@
 // app/components/layout/stepper.tsx
 //
-// Alur 5 langkah (Figma "Alur langkah"): Jelajah → Pilih → Jadwal → Ajukan → Ringkasan.
-// Dipakai di 4 halaman: Detail (active=2), Jadwal (3), Pengajuan (4), Ringkasan (5).
-// Sudah lewat = titik mint "•", aktif = pil kuning + angka navy, sisanya putih + angka abu.
+// 5-step flow (Figma "Alur langkah"): Jelajah → Pilih → Jadwal → Ajukan → Ringkasan.
+// Used on 4 pages: Detail (active=2), Schedule (3), Request (4), Summary (5).
+// Completed = mint dot "•", active = yellow pill + navy number, the rest = surface + gray number.
+// The navy number chip sits inside the yellow pill, so it stays navy in both themes.
+// Step labels: LAYOUT_TEXT.stepper (app/i18n/site-layout.ts).
 
-const display = "font-[family-name:var(--font-lilita,'Lilita_One')]";
+"use client";
 
-const STEPS = ["Jelajah", "Pilih", "Jadwal", "Ajukan", "Ringkasan"] as const;
+import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
+import { useText } from "./language";
 
-export default function Stepper({ active }: { active: 1 | 2 | 3 | 4 | 5 }) {
+export type StepNumber = 1 | 2 | 3 | 4 | 5;
+
+export default function Stepper({ active }: { active: StepNumber }) {
+  const t = useText(LAYOUT_TEXT).stepper;
   return (
-    <ol aria-label="Langkah peminjaman" className="flex flex-wrap gap-2">
-      {STEPS.map((label, i) => {
-        const n = i + 1;
-        const done = n < active;
-        const current = n === active;
+    <ol aria-label={t.label} className="flex flex-wrap gap-2">
+      {t.steps.map((label, i) => {
+        const step = i + 1;
+        const done = step < active;
+        const current = step === active;
         return (
           <li
             key={label}
             aria-current={current ? "step" : undefined}
-            className={`flex items-center gap-2 rounded-full border-2 border-[#0d2a4b] py-[5px] pl-2 pr-[14px] ${current ? "bg-[#ffd43b]" : "bg-white"}`}
+            className={`flex items-center gap-2 rounded-full border-2 border-line-strong py-[5px] pl-2 pr-[14px] ${current ? "bg-brand-secondary" : "bg-surface"}`}
           >
             <span
               aria-hidden
-              className={`${display} flex size-6 items-center justify-center rounded-full text-[13px] leading-none ${
+              className={`font-display flex size-6 items-center justify-center rounded-full text-[13px] leading-none ${
                 done
-                  ? "border-2 border-[#0d2a4b] bg-[#2ee6b0] text-[#0d2a4b]"
+                  ? "border-2 border-line-strong bg-status-available text-on-accent"
                   : current
-                    ? "bg-[#0d2a4b] text-white"
-                    : "bg-[#e3e8ee] text-[#0d2a4b]"
+                    ? "bg-navy-900 text-white"
+                    : "bg-pair-gray-bg text-ink"
               }`}
             >
-              {done ? "•" : n}
+              {done ? "•" : step}
             </span>
-            <span className={`text-[13px] font-extrabold leading-none ${current ? "text-[#0d2a4b]" : "text-[#5b6f87]"}`}>
+            <span className={`text-[13px] font-extrabold leading-none ${current ? "text-on-secondary" : "text-ink-muted"}`}>
               {label}
             </span>
           </li>

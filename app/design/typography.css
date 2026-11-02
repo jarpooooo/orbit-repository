@@ -1,15 +1,15 @@
-/* src/app/typography.css  (Tailwind CSS v4)
-   Font + type scale dari Figma "PinjamTEDI – Style Guide".
-   Pakai di globals.css:  @import "tailwindcss"; @import "./colors.css"; @import "./typography.css"; */
+/* app/design/typography.css  (Tailwind CSS v4)
+   Font + type scale from Figma "PinjamTEDI – Style Guide".
+   Usage in globals.css:  @import "tailwindcss"; @import "./colors.css"; @import "./typography.css"; */
 
-/* Font family: variabel --font-lilita / --font-jakarta di-set oleh next/font di <html>,
-   jadi harus pakai `inline` supaya var() terbaca di tempat utility dipakai. */
+/* Font family: --font-lilita / --font-jakarta are set by next/font on <html>,
+   so `inline` is required for var() to resolve where the utility is used. */
 @theme inline {
   --font-display: var(--font-lilita), "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Type scale. Contoh: class="font-display text-h1" / class="text-body-lg" */
+/* Type scale. Example: class="font-display text-h1" / class="text-body-lg" */
 @theme {
   /* Display (Lilita One) */
   --text-h1: 5rem;                       /* 80px */
@@ -25,11 +25,11 @@
   --text-h3--line-height: 1.05;
   --text-h3--font-weight: 400;
 
-  --text-card-title: 1.625rem;           /* 26px  "Display/Judul kartu" */
+  --text-card-title: 1.625rem;           /* 26px  "Display/Card title" */
   --text-card-title--line-height: 1.05;
   --text-card-title--font-weight: 400;
 
-  /* Isi (Plus Jakarta Sans Regular) */
+  /* Body (Plus Jakarta Sans Regular) */
   --text-body-lg: 1.1875rem;             /* 19px */
   --text-body-lg--line-height: 1.6;
 
@@ -42,7 +42,7 @@
   --text-caption: 0.8125rem;             /* 13px  "Keterangan" */
   --text-caption--line-height: 1.4;
 
-  /* Label & tombol (Plus Jakarta Sans Bold/ExtraBold) */
+  /* Labels & buttons (Plus Jakarta Sans Bold/ExtraBold) */
   --text-label: 1rem;                    /* 16px  "Label/Tebal" */
   --text-label--line-height: 1.3;
   --text-label--font-weight: 700;
@@ -58,12 +58,12 @@
 
 @layer base {
   html {
-    @apply font-sans text-fg antialiased;
+    @apply bg-canvas font-sans text-ink-body antialiased;
   }
 
-  /* Lilita One cuma punya weight 400: cegah faux-bold dari browser. */
+  /* Lilita One only has weight 400: prevent browser faux-bold. */
   h1, h2, h3, h4 {
-    @apply font-display font-normal text-fg-heading;
+    @apply font-display font-normal text-ink;
     font-synthesis-weight: none;
   }
 }

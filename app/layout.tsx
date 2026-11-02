@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { fontVariables } from "@/app/design/fonts";
-import { OG_DASAR, SITE_URL, SITUS } from "@/app/data/situs";
+import { BASE_OPEN_GRAPH, SITE, SITE_URL } from "@/app/data/site";
 import Navbar from "./components/layout/navbar";
 import Footer from "./components/layout/footer";
-
+import { ThemeScript } from "./components/layout/theme";
+import { LanguageReady, LanguageScript } from "./components/layout/language";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITUS.nama} | Peminjaman alat dan ruang DTEDI SV UGM`,
-    template: `%s | ${SITUS.nama}`,
+    default: `${SITE.name} | Peminjaman alat dan ruang DTEDI SV UGM`,
+    template: `%s | ${SITE.name}`,
   },
-  description: SITUS.deskripsi,
-  applicationName: SITUS.nama,
+  description: SITE.description,
+  applicationName: SITE.name,
   keywords: [
     "PinjamTEDI",
     "DTEDI",
@@ -26,19 +27,20 @@ export const metadata: Metadata = {
   ],
   icons: "/img/logo.svg",
   openGraph: {
-    ...OG_DASAR,
-    title: SITUS.nama,
-    description: SITUS.deskripsi,
+    ...BASE_OPEN_GRAPH,
+    title: SITE.name,
+    description: SITE.description,
   },
   twitter: {
     card: "summary",
-    title: SITUS.nama,
-    description: SITUS.deskripsi,
+    title: SITE.name,
+    description: SITE.description,
   },
   robots: { index: true, follow: true },
   formatDetection: { telephone: false },
 };
 
+// Default theme is light; dark mode is opt-in through the settings menu (data-theme on <html>).
 export const viewport: Viewport = {
   themeColor: "#d7eefb",
   colorScheme: "light",
@@ -46,14 +48,17 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="id"
-      className={`${fontVariables} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <Navbar/>
+    // suppressHydrationWarning: <ThemeScript /> and <LanguageScript /> set data-theme / lang before React hydrates
+    <html lang="id" className={`${fontVariables} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+        <LanguageScript />
+      </head>
+      <body className="flex min-h-full flex-col">
+        <LanguageReady />
+        <Navbar />
         {children}
-        <Footer/>
+        <Footer />
       </body>
     </html>
   );

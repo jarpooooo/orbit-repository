@@ -1,14 +1,24 @@
 /* PinjamTEDI — color tokens (Tailwind CSS v4)
-   Sumber: Figma "Orbit repository" → frame "PinjamTEDI – Style Guide".
-   Pakai: @import "tailwindcss"; @import "./colors.css"; di globals.css.
+   Source: Figma "Orbit repository" → frame "PinjamTEDI – Style Guide".
+   Usage: @import "tailwindcss"; @import "./colors.css"; in globals.css.
 
-   Struktur file:
-   1) PALETTE   : warna mentah + skala 50–950. Dipakai file color-variants.ts.
-   2) SEMANTIC  : pengelompokan warna berdasarkan MAKNA (brand, status, level, category,
-                  rank, surface, fg, border). Dipakai langsung di komponen. */
+   File structure:
+   1) PALETTE   : raw colors + 50–950 scale. Fixed, the same in both themes.
+   2) THEME     : colors that CHANGE between light and dark mode, written once as
+                  light-dark(<light>, <dark>). Use these for page, surfaces, text,
+                  lines, shadows, and status pairs.
+   3) SEMANTIC  : colors grouped by MEANING (brand, status, level, category, rank).
+   4) SCHEME    : color-scheme switch (OS default, data-theme override, print) + `dark:` variant.
+
+   Dark mode: <html data-theme="dark"> (set by the inline script in layout.tsx
+   from localStorage "pinjamtedi:theme"). Default (no attribute) is light; the OS setting is ignored.
+   Lightning CSS compiles light-dark() to a --lightningcss-light/dark polyfill that is
+   switched on :root (section 4). Tokens resolve once on :root, so a subtree CANNOT be
+   forced light by setting color-scheme on it: always-light areas (letter preview) use
+   fixed PALETTE classes instead. Print is forced light in section 4. */
 
 /* ========================== 1) PALETTE ========================== */
-/* Step yang persis warna Figma ditandai "= Figma". */
+/* Steps that exactly match Figma are marked "= Figma". */
 @theme {
   /* navy ← Navy */
   --color-navy-50: #f6f7f8;
@@ -23,7 +33,7 @@
   --color-navy-900: #0d2a4b;  /* = Figma */
   --color-navy-950: #04162d;
 
-  /* royal ← Biru */
+  /* royal ← Blue */
   --color-royal-50: #f3f7fe;
   --color-royal-100: #e3ebfd;
   --color-royal-200: #c7d8fa;
@@ -49,7 +59,7 @@
   --color-periwinkle-900: #11265e;
   --color-periwinkle-950: #03103e;
 
-  /* grape ← Ungu */
+  /* grape ← Purple */
   --color-grape-50: #f6f6fc;
   --color-grape-100: #eae9f8;
   --color-grape-200: #d6d4f1;
@@ -75,7 +85,7 @@
   --color-mint-900: #003921;
   --color-mint-950: #00210d;
 
-  /* sun ← Kuning */
+  /* sun ← Yellow */
   --color-sun-50: #fff7dd;
   --color-sun-100: #ffeaaa;
   --color-sun-200: #ffd43b;  /* = Figma */
@@ -88,7 +98,7 @@
   --color-sun-900: #3d2700;
   --color-sun-950: #251200;
 
-  /* tangerine ← Oranye */
+  /* tangerine ← Orange */
   --color-tangerine-50: #fff4ee;
   --color-tangerine-100: #ffe6d5;
   --color-tangerine-200: #fdccac;
@@ -101,7 +111,7 @@
   --color-tangerine-900: #501600;
   --color-tangerine-950: #320200;
 
-  /* slate ← Abu (status) */
+  /* slate ← Gray (status) */
   --color-slate-50: #f3f5f7;
   --color-slate-100: #e4e8ee;
   --color-slate-200: #c5ccd4;
@@ -114,108 +124,184 @@
   --color-slate-900: #151e29;
   --color-slate-950: #090f17;
 
-  /* Warna tunggal dari Figma (tanpa skala) */
-  --color-white: #ffffff;        /* Putih */
-  --color-sky: #d7eefb;          /* Langit */
-  --color-cream: #fff7da;        /* Krem */
-  --color-cream-line: #e6d6a0;   /* Garis krem */
-  --color-cream-row: #fff4c2;    /* Baris kuning */
+  /* Single colors from Figma (no scale) */
+  --color-white: #ffffff;        /* White */
+  --color-sky: #d7eefb;          /* Sky */
+  --color-cream: #fff7da;        /* Cream */
+  --color-cream-line: #e6d6a0;   /* Cream line */
+  --color-cream-row: #fff4c2;    /* Yellow row */
   --color-navy-soft: #163a63;    /* Navy 2 */
-  --color-navy-line: #2b5182;    /* Navy garis */
-  --color-ink: #2b3f57;          /* Teks isi */
-  --color-ink-soft: #5b6f87;     /* Teks redup */
-  --color-ink-on-dark: #d3e3f2;  /* Teks terang */
-  --color-line: #b9cfe2;         /* Garis */
+  --color-navy-line: #2b5182;    /* Navy line */
+  --color-body-text: #2b3f57;    /* Body text */
+  --color-muted-text: #5b6f87;   /* Muted text */
+  --color-light-text: #d3e3f2;   /* Light text */
+  --color-line-blue: #b9cfe2;    /* Line */
+  --color-field: #f3f9fe;        /* Search select fill */
+  --color-royal-press: #1a43b8;  /* Blue button hover */
+  --color-royal-edge: #12358f;   /* Blue button bottom edge (footer socials) */
+  --color-peach: #f7b98e;        /* Rank 3 badge */
 
-  /* Pasangan status persis dari Figma (status/<warna>-bg dan -teks) */
-  --color-hijau-bg: #c8f7e6;  --color-hijau-fg: #0b5c43;
-  --color-kuning-bg: #fff1c7; --color-kuning-fg: #6e4a00;
-  --color-oranye-bg: #ffe2cf; --color-oranye-fg: #8e360a;
-  --color-abu-bg: #e4e8ee;    --color-abu-fg: #3b4a5c;
-
-  /* Hard shadow (tanpa blur) */
-  --shadow-hard-royal: 6px 6px 0 0 #1f4fd8;
-  --shadow-hard-grape: 8px 8px 0 0 #5b3bb5;
-  --shadow-hard-sun: 10px 10px 0 0 #ffd43b;
-  --shadow-hard-navy: 0 6px 0 0 #0d2a4b;
+  /* Status pairs exactly from Figma (status/<color>-bg and -text) */
+  --color-green-bg: #c8f7e6;  --color-green-fg: #0b5c43;
+  --color-yellow-bg: #fff1c7; --color-yellow-fg: #6e4a00;
+  --color-orange-bg: #ffe2cf; --color-orange-fg: #8e360a;
+  --color-gray-bg: #e4e8ee;    --color-gray-fg: #3b4a5c;
 }
 
-/* ========================== 2) SEMANTIC ========================== */
-/* Dikelompokkan berdasarkan makna. Nama grup sama dengan SEMANTIC_COLORS di semantic-colors.ts. */
-@theme inline {
-  /* --- brand: identitas dan peran warna utama (catatan pakai dari Style Guide) --- */
-  --color-brand-ink: var(--color-navy-900);                 /* teks judul, garis */
-  --color-brand-primary: var(--color-tangerine-400);        /* aksi utama */
-  --color-brand-primary-hover: var(--color-tangerine-500);
-  --color-brand-secondary: var(--color-sun-200);            /* aksi kedua, sorotan, nomor langkah */
-  --color-brand-secondary-hover: var(--color-sun-300);
-  --color-brand-tertiary: var(--color-periwinkle-400);      /* aksen ketiga */
-  --color-brand-accent: var(--color-grape-700);             /* bayangan kartu katalog */
-  --color-brand-interactive: var(--color-royal-700);        /* aksi pencarian, ikon panah, lonceng */
-  --color-brand-interactive-hover: var(--color-royal-800);
+/* =========================== 2) THEME =========================== */
+/* light-dark(<light = Figma>, <dark = PinjamTEDI night palette>).
+   `static` keeps every variable in the CSS output, because some are only read
+   through var() (arbitrary shadows, inline <style> strings).
+   Adding a color: add ONE line here with both values, check contrast (WCAG AA:
+   4.5:1 text, 3:1 large text and UI parts), then use the utility (bg-*, text-*, ...). */
+@theme static {
+  /* --- surfaces --- */
+  --color-canvas: light-dark(var(--color-white), #0b1a2e);          /* <html> background (overscroll) */
+  --color-page: light-dark(var(--color-sky), #0b1a2e);              /* page sections */
+  --color-surface: light-dark(var(--color-white), #132a4a);         /* cards, panels, white sections */
+  --color-surface-warm: light-dark(var(--color-cream), #1a2f52);    /* cream cards */
+  --color-surface-row: light-dark(var(--color-cream-row), #2e2a17); /* highlighted (yellow) rows */
+  --color-surface-field: light-dark(var(--color-field), #0e2240);   /* select / input fill */
+  --color-surface-inverse: light-dark(var(--color-navy-900), #06111f); /* navy blocks: footer, steps card */
+  --color-surface-inverse-raised: light-dark(var(--color-navy-soft), #102540);
+  /* Lit panel behind illustrations drawn with navy lines + white fills (hero building) */
+  --color-showcase: light-dark(var(--color-white), #cfe3f3);
 
-  /* --- on: warna teks di atas warna brand --- */
+  /* --- text --- */
+  --color-ink: light-dark(var(--color-navy-900), #f3f8fd);          /* headings, strong text */
+  --color-ink-body: light-dark(var(--color-body-text), #d3e3f2);    /* body text */
+  --color-ink-muted: light-dark(var(--color-muted-text), #a3b7cc);  /* muted text on surface / warm */
+  /* Muted text ON the page (sky) background. Deliberate deviation from Figma:
+     #5b6f87 on #d7eefb is 4.30:1 (fails AA); #4f6379 is 5.2:1. */
+  --color-ink-muted-on-page: light-dark(#4f6379, #a3b7cc);
+  --color-ink-placeholder: light-dark(var(--color-muted-text), #8ea3ba);
+  --color-ink-accent: light-dark(var(--color-grape-700), #b3abe6);  /* purple text */
+  --color-link: light-dark(var(--color-royal-700), #8fb0f2);        /* blue text: links, text buttons */
+  --color-on-ink: light-dark(var(--color-white), #0b1a2e);          /* text on an `ink` fill (active chip) */
+  --color-on-accent: var(--color-navy-900);  /* text on yellow / orange / mint / periwinkle: never changes */
+  /* Muted text on yellow / mint fills (selected chips). Deliberate deviation from Figma:
+     #5b6f87 is 3.6:1 on yellow and 3.2:1 on mint (fails AA); #45566b is 5.3 / 4.7. Fixed in both themes. */
+  --color-on-accent-muted: #45566b;
+  --color-ink-on-inverse: var(--color-light-text);                  /* body text on surface-inverse */
+  --color-heading-lift: light-dark(var(--color-white), var(--color-navy-line)); /* hero h1 text-shadow */
+
+  /* --- lines --- */
+  --color-line: light-dark(var(--color-line-blue), #5a7dad);        /* thin dividers, field borders (dark: ≥3:1 on surface/field/warm) */
+  --color-line-strong: light-dark(var(--color-navy-900), #86a5cf);  /* the 2px Figma outline (dark: toned down so it does not look heavy) */
+  --color-line-warm: light-dark(var(--color-cream-line), #3d4a66);  /* divider inside cream cards */
+  --color-line-inverse: light-dark(var(--color-navy-line), #1f3a5e);
+  /* Outline of navy cards placed directly on the page (dark: the card alone is 1.1:1 against the page) */
+  --color-line-inverse-on-page: light-dark(var(--color-navy-line), #5a7dad);
+  --color-focus: light-dark(var(--color-royal-700), #8fb0f2);
+  --color-data-bar: light-dark(var(--color-royal-700), #8fb0f2);    /* bar-chart fill on a pair-gray track */
+  --color-focus-halo: light-dark(var(--color-navy-900), var(--color-navy-950)); /* keyboard-mode ring backing */
+
+  /* --- hard shadows (no blur): the "raised" Figma look --- */
+  --color-shadow: light-dark(var(--color-navy-900), #4d74b0);
+  --color-shadow-accent: light-dark(var(--color-grape-700), var(--color-grape-500));
+  --color-shadow-interactive: light-dark(var(--color-royal-700), var(--color-royal-500));
+  --color-shadow-muted: light-dark(var(--color-navy-line), #3a5a82);  /* unavailable cards */
+
+  /* --- status pairs (pills, schedule cells). Dark = tinted dark bg + light text, not inverted. --- */
+  --color-pair-green-bg: light-dark(var(--color-green-bg), #0e3b30);
+  --color-pair-green-fg: light-dark(var(--color-green-fg), #9ff2d2);
+  --color-pair-yellow-bg: light-dark(var(--color-yellow-bg), #3a2f06);
+  --color-pair-yellow-fg: light-dark(var(--color-yellow-fg), #ffe38a);
+  --color-pair-orange-bg: light-dark(var(--color-orange-bg), #4a230c);
+  --color-pair-orange-fg: light-dark(var(--color-orange-fg), #ffc39b);
+  --color-pair-gray-bg: light-dark(var(--color-gray-bg), #27333f);
+  --color-pair-gray-fg: light-dark(var(--color-gray-fg), #cdd5df);
+
+  /* Hard shadow presets */
+  --shadow-hard-royal: 6px 6px 0 0 var(--color-shadow-interactive);
+  --shadow-hard-grape: 8px 8px 0 0 var(--color-shadow-accent);
+  --shadow-hard-sun: 10px 10px 0 0 var(--color-sun-200);
+  --shadow-hard-navy: 0 6px 0 0 var(--color-shadow);
+}
+
+/* ========================== 3) SEMANTIC ========================== */
+/* Grouped by meaning. Group names match SEMANTIC_COLORS in semantic-colors.ts.
+   Brand fills are the same in both themes; text on them uses `on-*` (always navy or white). */
+@theme inline {
+  /* --- brand: identity and main color roles (usage notes from the Style Guide) --- */
+  --color-brand-primary: var(--color-tangerine-400);        /* primary action (CTA stays orange) */
+  --color-brand-primary-hover: var(--color-tangerine-500);
+  --color-brand-secondary: var(--color-sun-200);            /* secondary action, highlights, step numbers */
+  --color-brand-secondary-hover: var(--color-sun-300);
+  --color-brand-tertiary: var(--color-periwinkle-400);      /* third accent */
+  --color-brand-accent: var(--color-grape-700);             /* purple button */
+  --color-brand-interactive: var(--color-royal-700);        /* search action, arrow icons, bell */
+  --color-brand-interactive-hover: var(--color-royal-press);
+
+  /* --- on: text color on top of brand colors --- */
   --color-on-primary: var(--color-navy-900);
   --color-on-secondary: var(--color-navy-900);
   --color-on-tertiary: var(--color-navy-900);
-  --color-on-accent: var(--color-white);
+  --color-on-brand-accent: var(--color-white);
   --color-on-interactive: var(--color-white);
 
-  /* --- status: kondisi ketersediaan dan progres (solid / bg / fg) --- */
+  /* --- status: availability and request progress (solid / bg / fg) --- */
   --color-status-available: var(--color-mint-300);
-  --color-status-available-bg: var(--color-hijau-bg);
-  --color-status-available-fg: var(--color-hijau-fg);
+  --color-status-available-bg: var(--color-pair-green-bg);
+  --color-status-available-fg: var(--color-pair-green-fg);
   --color-status-pending: var(--color-sun-200);
-  --color-status-pending-bg: var(--color-kuning-bg);
-  --color-status-pending-fg: var(--color-kuning-fg);
+  --color-status-pending-bg: var(--color-pair-yellow-bg);
+  --color-status-pending-fg: var(--color-pair-yellow-fg);
   --color-status-attention: var(--color-tangerine-400);
-  --color-status-attention-bg: var(--color-oranye-bg);
-  --color-status-attention-fg: var(--color-oranye-fg);
+  --color-status-attention-bg: var(--color-pair-orange-bg);
+  --color-status-attention-fg: var(--color-pair-orange-fg);
   --color-status-unavailable: var(--color-slate-700);
-  --color-status-unavailable-bg: var(--color-abu-bg);
-  --color-status-unavailable-fg: var(--color-abu-fg);
+  --color-status-unavailable-bg: var(--color-pair-gray-bg);
+  --color-status-unavailable-fg: var(--color-pair-gray-fg);
 
-  /* --- level: tingkat izin (Umum / Menengah / Mahal) --- */
-  --color-level-umum: var(--color-mint-300);
-  --color-level-umum-bg: var(--color-hijau-bg);
-  --color-level-umum-fg: var(--color-hijau-fg);
-  --color-level-menengah: var(--color-sun-200);
-  --color-level-menengah-bg: var(--color-kuning-bg);
-  --color-level-menengah-fg: var(--color-kuning-fg);
-  --color-level-mahal: var(--color-tangerine-400);
-  --color-level-mahal-bg: var(--color-oranye-bg);
-  --color-level-mahal-fg: var(--color-oranye-fg);
+  /* --- level: permission level (Direct / Verification / Letter) --- */
+  --color-level-direct: var(--color-mint-300);
+  --color-level-direct-bg: var(--color-pair-green-bg);
+  --color-level-direct-fg: var(--color-pair-green-fg);
+  --color-level-verification: var(--color-sun-200);
+  --color-level-verification-bg: var(--color-pair-yellow-bg);
+  --color-level-verification-fg: var(--color-pair-yellow-fg);
+  --color-level-letter: var(--color-tangerine-400);
+  --color-level-letter-bg: var(--color-pair-orange-bg);
+  --color-level-letter-fg: var(--color-pair-orange-fg);
 
-  /* --- category: kelompok fasilitas (di Figma semuanya ungu) --- */
+  /* --- category: facility groups (all purple in Figma) --- */
   --color-category-hardware: var(--color-grape-700);
-  --color-category-ruang: var(--color-grape-700);
+  --color-category-room: var(--color-grape-700);
   --color-category-multimedia: var(--color-grape-700);
-  --color-category-logistik: var(--color-grape-700);
+  --color-category-logistics: var(--color-grape-700);
 
-  /* --- rank: peringkat podium --- */
+  /* --- rank: podium ranking --- */
   --color-rank-first: var(--color-sun-200);
   --color-rank-second: var(--color-periwinkle-400);
   --color-rank-third: var(--color-tangerine-400);
+}
 
-  /* --- surface: latar --- */
-  --color-surface: var(--color-white);
-  --color-surface-page: var(--color-sky);
-  --color-surface-warm: var(--color-cream);
-  --color-surface-row: var(--color-cream-row);
-  --color-surface-inverse: var(--color-navy-900);
-  --color-surface-inverse-raised: var(--color-navy-soft);
+/* =========================== 4) SCHEME =========================== */
+/* Default → light. data-theme → the user's choice. Print → always light. */
+:root {
+  color-scheme: light;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+  }
+}
 
-  /* --- fg: teks --- */
-  --color-fg: var(--color-ink);
-  --color-fg-muted: var(--color-ink-soft);
-  --color-fg-heading: var(--color-navy-900);
-  --color-fg-inverse: var(--color-white);
-  --color-fg-on-dark: var(--color-ink-on-dark);
-
-  /* --- border: garis --- */
-  --color-border: var(--color-line);
-  --color-border-warm: var(--color-cream-line);
-  --color-border-strong: var(--color-navy-900);
-  --color-border-inverse: var(--color-navy-line);
-  --color-border-focus: var(--color-royal-700);
+/* `dark:` variant: ONLY for layout differences between themes (e.g. a backdrop panel
+   that exists only in dark mode). Never use it to swap colors; add a THEME token instead.
+   Not applied in print, which is always light. */
+@custom-variant dark {
+  @media not print {
+    &:where([data-theme="dark"], [data-theme="dark"] *) {
+      @slot;
+    }
+  }
 }

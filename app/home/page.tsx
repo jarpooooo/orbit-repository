@@ -1,21 +1,9 @@
-import type { Metadata } from "next"
-import AjakanNotifikasi from "../components/ajakan-notifikasi"
-import CaraPinjam from "../components/cara-pinjam"
-import Hero from "../components/hero"
-import MauPinjam from "../components/mau-pinjam"
-import RingkasanHariIni from "../components/ringkasan-hari-ini"
+import type { Metadata } from "next";
+import HomeContent from "@/app/components/home/home-content";
 
-// /home = isi yang sama dengan Beranda → canonical ke "/" supaya tidak dianggap konten ganda
-export const metadata: Metadata = { alternates: { canonical: "/" } }
+// /home has the same content as "/" → canonical to "/" so it is not treated as duplicate content
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
-export default function Homepage(){
-    return(
-        <main>
-            <Hero/>
-            <RingkasanHariIni/>
-            <MauPinjam/>
-            <CaraPinjam/>
-            <AjakanNotifikasi/>
-        </main>
-    )
+export default function HomeAliasPage() {
+  return <HomeContent />;
 }

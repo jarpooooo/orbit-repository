@@ -1,11 +1,11 @@
-// src/lib/design/icon-map.ts
+// app/design/icon-map.ts
 //
-// Peta ikon untuk PinjamTEDI (sumber: Figma "Orbit repository").
-// 1) UI_ICONS            → lucide-react (ikon antarmuka kecil)
-// 2) BRAND_ICONS         → SVG sendiri (lucide v1 tidak punya ikon brand)
-// 3) *_ILLUSTRATIONS     → SVG ilustrasi hasil export Figma
+// Icon map for PinjamTEDI (source: Figma "Orbit repository").
+// 1) UI_ICONS            → lucide-react (small UI icons)
+// 2) BRAND_ICONS         → custom SVGs (lucide v1 has no brand icons)
+// 3) *_ILLUSTRATIONS     → illustration SVGs exported from Figma
 //
-// Tandai: [Figma] = terlihat di desain, [+] = tambahan yang hampir pasti dibutuhkan.
+// Markers: [Figma] = seen in the design, [+] = extra icon that will almost certainly be needed.
 
 import {
   ArrowLeft,
@@ -36,43 +36,43 @@ import {
 
 export const UI_ICONS = {
   // Navbar
-  search: Search, // [Figma] kolom "Cari"
-  notification: Bell, // [Figma] tombol notifikasi (biru)
-  notificationUnread: BellRing, // [+] saat ada notifikasi baru
-  menu: Menu, // [+] menu mobile
-  close: X, // [+] tutup menu / panel notifikasi
+  search: Search, // [Figma] "Cari" search field
+  notification: Bell, // [Figma] notification button (blue)
+  notificationUnread: BellRing, // [+] when there are new notifications
+  menu: Menu, // [+] mobile menu
+  close: X, // [+] close menu / notification panel
 
-  // Navigasi & aksi
+  // Navigation & actions
   breadcrumbSeparator: ChevronRight, // [Figma] "Beranda › Katalog"
-  dropdown: ChevronDown, // [Figma] "Semua kategori" di pencarian hero (ikon/panah bawah)
-  goTo: ArrowUpRight, // [Figma] tombol ↗ di kartu kategori Beranda
+  dropdown: ChevronDown, // [Figma] "Semua kategori" in the hero search (down arrow icon)
+  goTo: ArrowUpRight, // [Figma] ↗ button on the home category cards
   backToTop: ArrowUp, // [Figma] "Kembali ke atas"
-  next: ArrowRight, // [+] / panah di tombol pencarian hero
-  back: ArrowLeft, // [+] tombol "Kembali"
+  next: ArrowRight, // [+] / arrow on the hero search button
+  back: ArrowLeft, // [+] "Kembali" button
 
   // Form & status
-  check: Check, // [Figma] stepper selesai, checkbox, timeline "Langkah berikutnya"
+  check: Check, // [Figma] completed stepper, checkbox, "Langkah berikutnya" timeline
   increase: Plus, // [Figma] stepper "Jumlah unit"
   decrease: Minus, // [Figma] stepper "Jumlah unit"
-  calendar: CalendarDays, // [+] pemilih hari / "Lihat jadwal"
-  file: FileText, // [+] "Surat izin dosen" (file PDF)
+  calendar: CalendarDays, // [+] day picker / "Lihat jadwal"
+  file: FileText, // [+] "Surat izin dosen" (PDF file)
 
-  // Kontak footer
-  location: MapPin, // [Figma] alamat
-  hours: Clock, // [Figma] jam layanan
+  // Footer contact
+  location: MapPin, // [Figma] address
+  hours: Clock, // [Figma] service hours
   phone: Phone, // [Figma] help desk
 } as const satisfies Record<string, LucideIcon>;
 
 export type UiIconName = keyof typeof UI_ICONS;
 
-/** Props bawaan supaya garisnya serasi dengan outline tebal di desain. */
+/** Default props so strokes match the thick outlines in the design. */
 export const UI_ICON_DEFAULTS = {
   size: 18,
   strokeWidth: 2.25,
 } as const;
 
 /* -------------------------------------------------------------------------- */
-/* 2) Brand icons (SVG sendiri, taruh di public/icons/brand/)                 */
+/* 2) Brand icons (custom SVGs in public/icons/brand/)                      */
 /* -------------------------------------------------------------------------- */
 
 export const BRAND_ICONS = {
@@ -85,7 +85,7 @@ export const BRAND_ICONS = {
 
 export type BrandIconName = keyof typeof BRAND_ICONS;
 
-/** Urutan tampil di footer (sesuai Figma). */
+/** Display order in the footer (as in Figma). */
 export const FOOTER_SOCIALS: readonly BrandIconName[] = [
   "instagram",
   "youtube",
@@ -95,12 +95,12 @@ export const FOOTER_SOCIALS: readonly BrandIconName[] = [
 ];
 
 /* -------------------------------------------------------------------------- */
-/* 3) Ilustrasi (export dari Figma → public/illustrations/)                   */
+/* 3) Illustrations (exported from Figma → public/img/illustrations/)         */
 /* -------------------------------------------------------------------------- */
 
 const ILL = (name: string) => `/img/illustrations/${name}.svg`;
 
-/** Kartu katalog, halaman detail, jadwal, ringkasan, "Pengajuan saya". */
+/** Catalog cards, detail, schedule, summary, and "Pengajuan saya" pages. Keys = facility slugs. */
 export const FACILITY_ILLUSTRATIONS = {
   "kit-esp32": ILL("mikrokontroler"),
   "arduino-uno-r3": ILL("mikrokontroler"),
@@ -108,14 +108,14 @@ export const FACILITY_ILLUSTRATIONS = {
   "ruang-diskusi-a": ILL("ruang-diskusi"),
   "ruang-sidang": ILL("ruang-diskusi"),
   "pc-lab-rpl": ILL("pc-lab"),
-  "converter-hdmi": ILL("kabel-roll"), // belum ada ilustrasi HDMI khusus
+  "converter-hdmi": ILL("kabel-roll"), // no dedicated HDMI illustration yet
   "kamera-mirrorless": ILL("kamera"),
   "proyektor-portabel": ILL("proyektor"),
 } as const;
 
 export type FacilityKey = keyof typeof FACILITY_ILLUSTRATIONS;
 
-/** Kartu "Mau pinjam apa hari ini?" di Beranda. */
+/** "Mau pinjam apa hari ini?" cards on the home page. */
 export const CATEGORY_ILLUSTRATIONS = {
   mikrokontroler: ILL("mikrokontroler"),
   "perangkat-jaringan": ILL("perangkat-jaringan"),
@@ -128,9 +128,9 @@ export const CATEGORY_ILLUSTRATIONS = {
 export type CategoryIllustrationKey = keyof typeof CATEGORY_ILLUSTRATIONS;
 
 /**
- * Rak ilustrasi di atas footer Beranda (urut kiri ke kanan, ukuran px persis Figma).
- * `mobile: true` = tetap tampil di layar kecil.
- * Node Figma: Stop kontak 1:2931 · TV display 1:2944 · Proyektor 1:2951 · Mikrokontroler 1:2671 ·
+ * Illustration shelf above the home page footer (left to right, px sizes exactly as in Figma).
+ * `mobile: true` = still shown on small screens.
+ * Figma nodes: Stop kontak 1:2931 · TV display 1:2944 · Proyektor 1:2951 · Mikrokontroler 1:2671 ·
  * Kursi 1:2960 · Mic wireless 1:2964 · Kamera 1:2719 · Kabel roll 1:2970 · Laptop 1:2697 · Surat 1:2976.
  */
 export const FOOTER_STRIP_ILLUSTRATIONS = [
@@ -146,7 +146,7 @@ export const FOOTER_STRIP_ILLUSTRATIONS = [
   { key: "surat", label: "Surat bertanda tangan", size: 80, mobile: false, src: ILL("surat-bertanda-tangan") },
 ] as const;
 
-/** Ambil ilustrasi fasilitas dari nama yang tampil di UI ("Kit ESP32" → kit-esp32). */
+/** Resolve a facility illustration from its display name ("Kit ESP32" → kit-esp32). */
 export const toFacilityKey = (name: string): FacilityKey | undefined => {
   const slug = name
     .toLowerCase()
