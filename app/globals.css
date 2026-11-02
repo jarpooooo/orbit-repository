@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./design/colors.css";
+@import "./design/typography.css";
 
 /* :root {
   --background: #ffffff;
