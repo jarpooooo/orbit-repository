@@ -12,7 +12,11 @@ import type { Metadata } from "next";
 import { UI_ICONS } from "@/app/design/icon-map";
 import { IZIN_NOTE, STATUS, type Izin } from "@/app/data/fasilitas";
 
-export const metadata: Metadata = { title: "Cara Pinjam | PinjamTEDI" };
+export const metadata: Metadata = {
+  title: "Cara Pinjam",
+  description: "Tiga tingkat izin dan lima langkah meminjam alat atau ruang DTEDI lewat PinjamTEDI.",
+  alternates: { canonical: "/cara-pinjam" },
+};
 
 const display = "font-[family-name:var(--font-lilita,'Lilita_One')]";
 const sans = "font-[family-name:var(--font-jakarta,'Plus_Jakarta_Sans')]";

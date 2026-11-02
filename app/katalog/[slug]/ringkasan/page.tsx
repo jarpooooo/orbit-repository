@@ -16,8 +16,14 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
-  const f = getFasilitas((await params).slug);
-  return { title: f ? `Pengajuan ${f.name} terkirim | PinjamTEDI` : "Ringkasan | PinjamTEDI" };
+  const { slug } = await params;
+  const f = getFasilitas(slug);
+  // halaman hasil pengajuan: tidak perlu diindeks mesin pencari
+  return {
+    title: f ? `Pengajuan ${f.name} terkirim` : "Ringkasan",
+    robots: { index: false, follow: true },
+    alternates: { canonical: `/katalog/${slug}/ringkasan` },
+  };
 }
 
 export default function RingkasanPage({ params }: { params: Promise<Params> }) {

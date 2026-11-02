@@ -42,7 +42,7 @@ const LINK_COLUMNS = [
     links: [
       { label: "Beranda", href: "/" },
       { label: "Katalog", href: "/katalog" },
-      { label: "Jadwal Ruang", href: "/jadwal" },
+      { label: "Jadwal Ruang", href: "/jadwal-ruang" },
       { label: "Cara Pinjam", href: "/cara-pinjam" },
     ],
   },

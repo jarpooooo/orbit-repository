@@ -17,7 +17,12 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const f = getFasilitas((await params).slug);
-  return { title: f ? `Pilih jadwal ${f.name} | PinjamTEDI` : "Pilih jadwal | PinjamTEDI" };
+  if (!f) return { title: "Pilih jadwal" };
+  return {
+    title: `Pilih jadwal ${f.name}`,
+    description: `Cek ketersediaan dan pilih jadwal peminjaman ${f.name} di PinjamTEDI.`,
+    alternates: { canonical: `/katalog/${f.slug}/jadwal` },
+  };
 }
 
 export default async function JadwalPage({ params }: { params: Promise<Params> }) {

@@ -16,8 +16,14 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
-  const f = getFasilitas((await params).slug);
-  return { title: f ? `Ajukan ${f.name} | PinjamTEDI` : "Ajukan | PinjamTEDI" };
+  const { slug } = await params;
+  const f = getFasilitas(slug);
+  // halaman form: tidak perlu diindeks mesin pencari
+  return {
+    title: f ? `Ajukan ${f.name}` : "Ajukan",
+    robots: { index: false, follow: true },
+    alternates: { canonical: `/katalog/${slug}/ajukan` },
+  };
 }
 
 export default function AjukanPage({ params }: { params: Promise<Params> }) {

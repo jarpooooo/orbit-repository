@@ -11,6 +11,7 @@ import type { Metadata } from "next";
 import { FACILITY_ILLUSTRATIONS, UI_ICONS } from "@/app/design/icon-map";
 import Stepper from "@/app/components/layout/stepper";
 import { FASILITAS, IZIN_NOTE, STATUS, getFasilitas } from "@/app/data/fasilitas";
+import { OG_DASAR } from "@/app/data/situs";
 
 const display = "font-[family-name:var(--font-lilita,'Lilita_One')]";
 const sans = "font-[family-name:var(--font-jakarta,'Plus_Jakarta_Sans')]";
@@ -23,7 +24,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const f = getFasilitas((await params).slug);
-  return { title: f ? `${f.name} | PinjamTEDI` : "Fasilitas | PinjamTEDI" };
+  if (!f) return { title: "Fasilitas" };
+  const url = `/katalog/${f.slug}`;
+  return {
+    title: f.name,
+    description: f.long ?? f.desc,
+    alternates: { canonical: url },
+    openGraph: { ...OG_DASAR, title: f.name, description: f.desc, url },
+  };
 }
 
 const btn =
@@ -65,7 +73,7 @@ export default async function DetailFasilitasPage({ params }: { params: Promise<
               alt={f.name}
               width={260}
               height={260}
-              priority
+              preload
               className="size-[180px] sm:size-[240px] xl:size-[260px]"
             />
           </div>

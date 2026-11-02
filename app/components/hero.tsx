@@ -214,7 +214,7 @@ export default function Hero() {
             alt="Ilustrasi gedung DTEDI dengan kartu peminjaman disetujui"
             width={560}
             height={500}
-            priority
+            preload
             className="h-auto w-full"
           />
         </div>

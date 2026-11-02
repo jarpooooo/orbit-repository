@@ -16,7 +16,8 @@ import Notifikasi from "./notifikasi";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { AnimatePresence, motion } from "motion/react";
+// LazyMotion + m: hanya muat fitur animasi DOM dasar → bundle JS lebih kecil dari `motion` penuh
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { Menu, Search, X } from "lucide-react";
 
 const NAV_LINKS = [
@@ -90,7 +91,7 @@ export default function Navbar() {
         <nav aria-label="Navigasi utama" className="flex items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="PinjamTEDI, beranda">
-            <Image src="/img/logo.svg" alt="" width={46} height={46} priority className="size-[46px]" />
+            <Image src="/img/logo.svg" alt="" width={46} height={46} loading="eager" className="size-[46px]" />
             <span className="flex flex-col whitespace-nowrap">
               <span className="font-display text-[26px] leading-[1.05] text-fg-heading">PinjamTEDI</span>
               <span className="hidden text-[12px] font-semibold leading-[1.4] text-fg sm:block">
@@ -165,10 +166,11 @@ export default function Navbar() {
       </div>
 
       {/* Panel mobile/tablet */}
+      <LazyMotion features={domAnimation} strict>
       <AnimatePresence>
         {open && (
           <>
-            <motion.button
+            <m.button
               type="button"
               aria-label="Tutup menu"
               tabIndex={-1}
@@ -178,7 +180,7 @@ export default function Navbar() {
               exit={{ opacity: 0 }}
               className="fixed inset-0 -z-10 cursor-default bg-navy-900/40 xl:hidden"
             />
-            <motion.div
+            <m.div
               id={menuId}
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -227,10 +229,11 @@ export default function Navbar() {
               >
                 Pinjam sekarang
               </Link>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>
+      </LazyMotion>
     </header>
   );
 }

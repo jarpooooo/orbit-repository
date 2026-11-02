@@ -86,7 +86,7 @@ export default function RingkasanHariIni() {
     <section className={`bg-[#d7eefb] px-5 pb-12 pt-12 sm:px-8 sm:pb-14 sm:pt-16 xl:px-[110px] xl:pb-[72px] xl:pt-[88px] ${sans}`}>
       <div className="mx-auto flex max-w-[1220px] flex-col gap-8 xl:flex-row">
         {/* Ruang kosong hari ini */}
-        <Card title="Ruang kosong hari ini" href="/jadwal" cta="Lihat jadwal">
+        <Card title="Ruang kosong hari ini" href="/jadwal-ruang" cta="Lihat jadwal">
           <div role="table" aria-label="Ruang kosong hari ini" className="flex flex-col gap-[6px]">
             <div role="row" className={`${ruangCols} gap-3 ${head}`}>
               <span role="columnheader">Jam</span>
