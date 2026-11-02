@@ -1,0 +1,221 @@
+/* PinjamTEDI — color tokens (Tailwind CSS v4)
+   Sumber: Figma "Orbit repository" → frame "PinjamTEDI – Style Guide".
+   Pakai: @import "tailwindcss"; @import "./colors.css"; di globals.css.
+
+   Struktur file:
+   1) PALETTE   : warna mentah + skala 50–950. Dipakai file color-variants.ts.
+   2) SEMANTIC  : pengelompokan warna berdasarkan MAKNA (brand, status, level, category,
+                  rank, surface, fg, border). Dipakai langsung di komponen. */
+
+/* ========================== 1) PALETTE ========================== */
+/* Step yang persis warna Figma ditandai "= Figma". */
+@theme {
+  /* navy ← Navy */
+  --color-navy-50: #f6f7f8;
+  --color-navy-100: #e8ebef;
+  --color-navy-200: #d2d8df;
+  --color-navy-300: #b5bfca;
+  --color-navy-400: #99a6b6;
+  --color-navy-500: #7e8ea2;
+  --color-navy-600: #60738b;
+  --color-navy-700: #435a75;
+  --color-navy-800: #284160;
+  --color-navy-900: #0d2a4b;  /* = Figma */
+  --color-navy-950: #04162d;
+
+  /* royal ← Biru */
+  --color-royal-50: #f3f7fe;
+  --color-royal-100: #e3ebfd;
+  --color-royal-200: #c7d8fa;
+  --color-royal-300: #a3bef5;
+  --color-royal-400: #7fa3ef;
+  --color-royal-500: #5d88e8;
+  --color-royal-600: #3767df;
+  --color-royal-700: #1f4fd8;  /* = Figma */
+  --color-royal-800: #0c2f9d;
+  --color-royal-900: #031b77;
+  --color-royal-950: #000350;
+
+  /* periwinkle ← Periwinkle */
+  --color-periwinkle-50: #f2f7ff;
+  --color-periwinkle-100: #e1ebff;
+  --color-periwinkle-200: #c4d8ff;
+  --color-periwinkle-300: #9dbdff;
+  --color-periwinkle-400: #6c98ff;  /* = Figma */
+  --color-periwinkle-500: #5e87e8;
+  --color-periwinkle-600: #496dc2;
+  --color-periwinkle-700: #35539e;
+  --color-periwinkle-800: #213b7b;
+  --color-periwinkle-900: #11265e;
+  --color-periwinkle-950: #03103e;
+
+  /* grape ← Ungu */
+  --color-grape-50: #f6f6fc;
+  --color-grape-100: #eae9f8;
+  --color-grape-200: #d6d4f1;
+  --color-grape-300: #bcb7e7;
+  --color-grape-400: #a39bdd;
+  --color-grape-500: #8b7ed1;
+  --color-grape-600: #715ec3;
+  --color-grape-700: #5b3bb5;  /* = Figma */
+  --color-grape-800: #42258b;
+  --color-grape-900: #2e1369;
+  --color-grape-950: #190044;
+
+  /* mint ← Mint */
+  --color-mint-50: #e9fcf4;
+  --color-mint-100: #c9f8e4;
+  --color-mint-200: #8befc9;
+  --color-mint-300: #2ee6b0;  /* = Figma */
+  --color-mint-400: #00c191;
+  --color-mint-500: #00a67a;
+  --color-mint-600: #008862;
+  --color-mint-700: #006c4a;
+  --color-mint-800: #005133;
+  --color-mint-900: #003921;
+  --color-mint-950: #00210d;
+
+  /* sun ← Kuning */
+  --color-sun-50: #fff7dd;
+  --color-sun-100: #ffeaaa;
+  --color-sun-200: #ffd43b;  /* = Figma */
+  --color-sun-300: #e1ba24;
+  --color-sun-400: #c5a000;
+  --color-sun-500: #aa8800;
+  --color-sun-600: #8c6e00;
+  --color-sun-700: #705400;
+  --color-sun-800: #543c00;
+  --color-sun-900: #3d2700;
+  --color-sun-950: #251200;
+
+  /* tangerine ← Oranye */
+  --color-tangerine-50: #fff4ee;
+  --color-tangerine-100: #ffe6d5;
+  --color-tangerine-200: #fdccac;
+  --color-tangerine-300: #f9a972;
+  --color-tangerine-400: #f2862e;  /* = Figma */
+  --color-tangerine-500: #d06e19;
+  --color-tangerine-600: #ad5600;
+  --color-tangerine-700: #8b3f00;
+  --color-tangerine-800: #6b2900;
+  --color-tangerine-900: #501600;
+  --color-tangerine-950: #320200;
+
+  /* slate ← Abu (status) */
+  --color-slate-50: #f3f5f7;
+  --color-slate-100: #e4e8ee;
+  --color-slate-200: #c5ccd4;
+  --color-slate-300: #a8b0bb;
+  --color-slate-400: #8b95a2;
+  --color-slate-500: #6f7b8a;
+  --color-slate-600: #546273;
+  --color-slate-700: #3b4a5c;  /* = Figma */
+  --color-slate-800: #263240;
+  --color-slate-900: #151e29;
+  --color-slate-950: #090f17;
+
+  /* Warna tunggal dari Figma (tanpa skala) */
+  --color-white: #ffffff;        /* Putih */
+  --color-sky: #d7eefb;          /* Langit */
+  --color-cream: #fff7da;        /* Krem */
+  --color-cream-line: #e6d6a0;   /* Garis krem */
+  --color-cream-row: #fff4c2;    /* Baris kuning */
+  --color-navy-soft: #163a63;    /* Navy 2 */
+  --color-navy-line: #2b5182;    /* Navy garis */
+  --color-ink: #2b3f57;          /* Teks isi */
+  --color-ink-soft: #5b6f87;     /* Teks redup */
+  --color-ink-on-dark: #d3e3f2;  /* Teks terang */
+  --color-line: #b9cfe2;         /* Garis */
+
+  /* Pasangan status persis dari Figma (status/<warna>-bg dan -teks) */
+  --color-hijau-bg: #c8f7e6;  --color-hijau-fg: #0b5c43;
+  --color-kuning-bg: #fff1c7; --color-kuning-fg: #6e4a00;
+  --color-oranye-bg: #ffe2cf; --color-oranye-fg: #8e360a;
+  --color-abu-bg: #e4e8ee;    --color-abu-fg: #3b4a5c;
+
+  /* Hard shadow (tanpa blur) */
+  --shadow-hard-royal: 6px 6px 0 0 #1f4fd8;
+  --shadow-hard-grape: 8px 8px 0 0 #5b3bb5;
+  --shadow-hard-sun: 10px 10px 0 0 #ffd43b;
+  --shadow-hard-navy: 0 6px 0 0 #0d2a4b;
+}
+
+/* ========================== 2) SEMANTIC ========================== */
+/* Dikelompokkan berdasarkan makna. Nama grup sama dengan SEMANTIC_COLORS di semantic-colors.ts. */
+@theme inline {
+  /* --- brand: identitas dan peran warna utama (catatan pakai dari Style Guide) --- */
+  --color-brand-ink: var(--color-navy-900);                 /* teks judul, garis */
+  --color-brand-primary: var(--color-tangerine-400);        /* aksi utama */
+  --color-brand-primary-hover: var(--color-tangerine-500);
+  --color-brand-secondary: var(--color-sun-200);            /* aksi kedua, sorotan, nomor langkah */
+  --color-brand-secondary-hover: var(--color-sun-300);
+  --color-brand-tertiary: var(--color-periwinkle-400);      /* aksen ketiga */
+  --color-brand-accent: var(--color-grape-700);             /* bayangan kartu katalog */
+  --color-brand-interactive: var(--color-royal-700);        /* aksi pencarian, ikon panah, lonceng */
+  --color-brand-interactive-hover: var(--color-royal-800);
+
+  /* --- on: warna teks di atas warna brand --- */
+  --color-on-primary: var(--color-navy-900);
+  --color-on-secondary: var(--color-navy-900);
+  --color-on-tertiary: var(--color-navy-900);
+  --color-on-accent: var(--color-white);
+  --color-on-interactive: var(--color-white);
+
+  /* --- status: kondisi ketersediaan dan progres (solid / bg / fg) --- */
+  --color-status-available: var(--color-mint-300);
+  --color-status-available-bg: var(--color-hijau-bg);
+  --color-status-available-fg: var(--color-hijau-fg);
+  --color-status-pending: var(--color-sun-200);
+  --color-status-pending-bg: var(--color-kuning-bg);
+  --color-status-pending-fg: var(--color-kuning-fg);
+  --color-status-attention: var(--color-tangerine-400);
+  --color-status-attention-bg: var(--color-oranye-bg);
+  --color-status-attention-fg: var(--color-oranye-fg);
+  --color-status-unavailable: var(--color-slate-700);
+  --color-status-unavailable-bg: var(--color-abu-bg);
+  --color-status-unavailable-fg: var(--color-abu-fg);
+
+  /* --- level: tingkat izin (Umum / Menengah / Mahal) --- */
+  --color-level-umum: var(--color-mint-300);
+  --color-level-umum-bg: var(--color-hijau-bg);
+  --color-level-umum-fg: var(--color-hijau-fg);
+  --color-level-menengah: var(--color-sun-200);
+  --color-level-menengah-bg: var(--color-kuning-bg);
+  --color-level-menengah-fg: var(--color-kuning-fg);
+  --color-level-mahal: var(--color-tangerine-400);
+  --color-level-mahal-bg: var(--color-oranye-bg);
+  --color-level-mahal-fg: var(--color-oranye-fg);
+
+  /* --- category: kelompok fasilitas (di Figma semuanya ungu) --- */
+  --color-category-hardware: var(--color-grape-700);
+  --color-category-ruang: var(--color-grape-700);
+  --color-category-multimedia: var(--color-grape-700);
+  --color-category-logistik: var(--color-grape-700);
+
+  /* --- rank: peringkat podium --- */
+  --color-rank-first: var(--color-sun-200);
+  --color-rank-second: var(--color-periwinkle-400);
+  --color-rank-third: var(--color-tangerine-400);
+
+  /* --- surface: latar --- */
+  --color-surface: var(--color-white);
+  --color-surface-page: var(--color-sky);
+  --color-surface-warm: var(--color-cream);
+  --color-surface-row: var(--color-cream-row);
+  --color-surface-inverse: var(--color-navy-900);
+  --color-surface-inverse-raised: var(--color-navy-soft);
+
+  /* --- fg: teks --- */
+  --color-fg: var(--color-ink);
+  --color-fg-muted: var(--color-ink-soft);
+  --color-fg-heading: var(--color-navy-900);
+  --color-fg-inverse: var(--color-white);
+  --color-fg-on-dark: var(--color-ink-on-dark);
+
+  /* --- border: garis --- */
+  --color-border: var(--color-line);
+  --color-border-warm: var(--color-cream-line);
+  --color-border-strong: var(--color-navy-900);
+  --color-border-inverse: var(--color-navy-line);
+  --color-border-focus: var(--color-royal-700);
+}
