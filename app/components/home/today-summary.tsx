@@ -8,7 +8,8 @@
 "use client";
 
 import Link from "next/link";
-import type { FacilityGroup } from "@/app/data/facilities";
+import type { FacilityCategory } from "@/app/data/facilities";
+import CategoryBadge from "@/app/components/ui/category-badge";
 import { COMMON_TEXT, formatTimeRange } from "@/app/i18n/common";
 import { HOME_TEXT, type SlotStatus, type SummaryItemKey, type SummaryRoomKey } from "@/app/i18n/home";
 import { useLocale } from "@/app/components/layout/language";
@@ -28,11 +29,12 @@ const ROOM_SLOTS: readonly { time: string; room: SummaryRoomKey; status: SlotSta
   { time: "15.00–17.00", room: "discussionB", status: "lastSlot" },
 ];
 
-const POPULAR: readonly { item: SummaryItemKey; group: FacilityGroup; count: number }[] = [
-  { item: "esp32", group: "hardware", count: 18 },
-  { item: "hdmi", group: "logistics", count: 15 },
-  { item: "discussionA", group: "room", count: 12 },
-  { item: "multimeter", group: "hardware", count: 9 },
+/** Same top 4 as the "Paling sering dipinjam" page. */
+const POPULAR: readonly { item: SummaryItemKey; category: FacilityCategory; count: number }[] = [
+  { item: "esp32", category: "hardware", count: 18 },
+  { item: "hdmi", category: "multimedia", count: 15 },
+  { item: "discussionA", category: "room", count: 12 },
+  { item: "sensorKit", category: "hardware", count: 9 },
 ];
 
 /** Badge colors for ranks 1–3 (fixed light chips, navy text in both themes). Other ranks: plain `text-ink`. */
@@ -135,8 +137,8 @@ export default function TodaySummary() {
                 <span role="cell" className="min-w-0 text-[15px] font-bold leading-[1.3] text-ink sm:text-[16px]">
                   {t.items[p.item]}
                 </span>
-                <span role="cell" className="hidden text-[16px] font-normal leading-[1.55] text-ink sm:block">
-                  {common.groups[p.group]}
+                <span role="cell" className="hidden sm:block">
+                  <CategoryBadge category={p.category} />
                 </span>
                 <span role="cell" className="text-right text-[16px] font-extrabold leading-[1.3] text-ink">
                   {p.count}×

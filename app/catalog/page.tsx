@@ -1,13 +1,14 @@
 // app/catalog/page.tsx
 //
-// "Katalog fasilitas" page (Figma 02 Katalog, node 1:205).
-// Thin server page: reads ?q= (from the navbar / hero) and ?kategori= (from the home page cards) on the server,
-// then hands them to the client component. That way the card list is in the initial HTML (good for SEO).
+// "Katalog" page (Figma "1.4 Katalog", node 148:1201).
+// Thin server page: reads the URL filters on the server (?q= from the navbar / hero, ?kategori= from the home
+// page cards, plus ?grup= ?lokasi= ?kapasitas= ?tanggal=), then hands them to the client component.
+// That way the card list is in the initial HTML (good for SEO).
 
 import { Suspense } from "react";
 import FacilityCatalog from "@/app/components/catalog/facility-catalog";
 
-type SearchParams = Promise<{ q?: string; kategori?: string }>;
+type SearchParams = Promise<{ q?: string; kategori?: string; grup?: string; lokasi?: string; kapasitas?: string; tanggal?: string }>;
 
 // searchParams is runtime data → needs <Suspense> so the page shell can still be prerendered (Cache Components)
 export default function CatalogPage({ searchParams }: { searchParams: SearchParams }) {
@@ -20,5 +21,14 @@ export default function CatalogPage({ searchParams }: { searchParams: SearchPara
 
 async function CatalogContent({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  return <FacilityCatalog initialQuery={params.q} initialCategory={params.kategori} />;
+  return (
+    <FacilityCatalog
+      initialQuery={params.q}
+      initialCategory={params.kategori}
+      initialGroup={params.grup}
+      initialLocation={params.lokasi}
+      initialCapacity={params.kapasitas}
+      initialDate={params.tanggal}
+    />
+  );
 }

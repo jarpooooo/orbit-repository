@@ -7,7 +7,7 @@ import type { Dictionary } from "./locale";
 
 /** Simulated rooms / items in "Ringkasan hari ini" (keys used by components/home/today-summary.tsx). */
 export type SummaryRoomKey = "discussionA" | "seminar" | "pcLab" | "discussionB";
-export type SummaryItemKey = "esp32" | "hdmi" | "discussionA" | "multimeter";
+export type SummaryItemKey = "esp32" | "hdmi" | "discussionA" | "sensorKit";
 export type SlotStatus = "free" | "taken" | "lastSlot";
 /** Steps in the "Empat langkah" card (components/home/how-to-borrow.tsx). */
 export type HomeStepKey = "search" | "schedule" | "request" | "pickup";
@@ -38,12 +38,12 @@ const id = {
       "Arduino Uno",
       "Ruang Diskusi",
       "ESP32",
-      "Proyektor Portabel",
-      "PC Lab",
-      "Multimeter",
+      "Proyektor",
+      "Lab Komputer",
+      "Raspberry Pi",
       "Kamera",
-      "Ruang Sidang",
-      "Router Cisco",
+      "Auditorium",
+      "Sound System",
     ],
     illustrationAlt: "Ilustrasi gedung DTEDI dengan kartu peminjaman disetujui",
   },
@@ -56,16 +56,16 @@ const id = {
     columns: { time: "Jam", room: "Ruang", status: "Status", rank: "#", item: "Barang / ruang", category: "Kategori", countShort: "Pinjam", countLong: "Minggu ini" },
     slotStatus: { free: "Kosong", taken: "Terisi", lastSlot: "Sisa 1 slot" } as Record<SlotStatus, string>,
     rooms: {
-      discussionA: "Ruang Diskusi A",
-      seminar: "Ruang Sidang",
-      pcLab: "PC Lab RPL, 8 kursi",
-      discussionB: "Ruang Diskusi B",
+      discussionA: "Ruang Diskusi 1",
+      seminar: "Auditorium",
+      pcLab: "Lab Komputer 1, 8 kursi",
+      discussionB: "Ruang Diskusi 2",
     } as Record<SummaryRoomKey, string>,
     items: {
-      esp32: "Kit ESP32",
-      hdmi: "Converter HDMI",
-      discussionA: "Ruang Diskusi A",
-      multimeter: "Multimeter digital",
+      esp32: "ESP32",
+      hdmi: "HDMI/VGA Adapter",
+      discussionA: "Ruang Diskusi 1",
+      sensorKit: "Sensor Kit",
     } as Record<SummaryItemKey, string>,
   },
 
@@ -135,12 +135,12 @@ const en: typeof id = {
       "Arduino Uno",
       "Discussion Room",
       "ESP32",
-      "Portable Projector",
-      "PC Lab",
-      "Multimeter",
+      "Projector",
+      "Computer Lab",
+      "Raspberry Pi",
       "Camera",
-      "Seminar Room",
-      "Cisco Router",
+      "Auditorium",
+      "Sound System",
     ],
     illustrationAlt: "Illustration of the DTEDI building with an approved borrowing card",
   },
@@ -153,16 +153,16 @@ const en: typeof id = {
     columns: { time: "Time", room: "Room", status: "Status", rank: "#", item: "Item / room", category: "Category", countShort: "Loans", countLong: "This week" },
     slotStatus: { free: "Free", taken: "Booked", lastSlot: "1 slot left" },
     rooms: {
-      discussionA: "Discussion Room A",
-      seminar: "Seminar Room",
-      pcLab: "PC Lab RPL, 8 seats",
-      discussionB: "Discussion Room B",
+      discussionA: "Discussion Room 1",
+      seminar: "Auditorium",
+      pcLab: "Computer Lab 1, 8 seats",
+      discussionB: "Discussion Room 2",
     },
     items: {
-      esp32: "ESP32 Kit",
-      hdmi: "HDMI Converter",
-      discussionA: "Discussion Room A",
-      multimeter: "Digital multimeter",
+      esp32: "ESP32",
+      hdmi: "HDMI/VGA Adapter",
+      discussionA: "Discussion Room 1",
+      sensorKit: "Sensor Kit",
     },
   },
 

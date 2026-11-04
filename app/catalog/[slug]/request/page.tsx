@@ -8,16 +8,18 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import RequestForm from "@/app/components/catalog/request-form";
 import { FACILITIES, getFacility } from "@/app/data/facilities";
+import { localizeFacility } from "@/app/i18n/facilities";
 
 type Params = Promise<{ slug: string }>;
 
 export function generateStaticParams() {
-  return FACILITIES.map((f) => ({ slug: f.slug }));
+  return FACILITIES.map((f) => ({ slug: f.id }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const f = getFacility(slug);
+  const facility = getFacility(slug);
+  const f = facility && localizeFacility(facility, "id");
   // form page: no need for search engines to index it
   return {
     title: f ? `Ajukan ${f.name}` : "Ajukan",

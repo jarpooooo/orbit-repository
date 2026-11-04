@@ -7,6 +7,7 @@ import Hero from "./hero";
 import HowToBorrow from "./how-to-borrow";
 import NotificationCta from "./notification-cta";
 import TodaySummary from "./today-summary";
+const IS_LOGGED_IN = true;
 
 export default function HomeContent() {
   return (
@@ -15,7 +16,7 @@ export default function HomeContent() {
       <TodaySummary />
       <CategoryPicker />
       <HowToBorrow />
-      <NotificationCta />
+      {IS_LOGGED_IN && <NotificationCta />}
     </main>
   );
 }

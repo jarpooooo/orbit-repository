@@ -32,12 +32,12 @@ export const SEMANTIC_COLORS = {
     letter: COLOR_VARIANTS.tangerine,
   },
 
-  /** Facility groups. Every group is purple in Figma; change per row if they get distinct colors later. */
+  /** Facility categories (illustration palette). Components use CATEGORY_STYLE (category-style.ts). */
   category: {
-    hardware: COLOR_VARIANTS.grape,
-    room: COLOR_VARIANTS.grape,
-    multimedia: COLOR_VARIANTS.grape, // in the spec document, not in Figma yet
-    logistics: COLOR_VARIANTS.grape,
+    hardware: COLOR_VARIANTS.sun,
+    room: COLOR_VARIANTS.mint,
+    multimedia: COLOR_VARIANTS.periwinkle,
+    logistics: COLOR_VARIANTS.tangerine,
   },
 
   /** Podium ranks on the "Paling sering dipinjam" page. */

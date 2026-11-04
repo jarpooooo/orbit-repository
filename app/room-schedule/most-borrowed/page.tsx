@@ -12,10 +12,11 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { FACILITY_ILLUSTRATIONS } from "@/app/design/icon-map";
+import { CATEGORY_STYLE } from "@/app/design/category-style";
+import CategoryBadge from "@/app/components/ui/category-badge";
+import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import StatusBadge from "@/app/components/ui/status-badge";
 import { withFacilities } from "@/app/data/facilities";
@@ -32,17 +33,17 @@ const PERIODS: readonly { key: PeriodKey; multiplier: number }[] = [
   { key: "semester", multiplier: 13 },
 ];
 
-/** Times borrowed "Minggu ini" (Figma). Already sorted from most to least. */
+/** Times borrowed "Minggu ini" (Figma counts, facilities mapped to the current catalog). Already sorted from most to least. */
 const RANKING = withFacilities([
-  { slug: "kit-esp32", count: 18 },
-  { slug: "converter-hdmi", count: 15 },
-  { slug: "ruang-diskusi-a", count: 12 },
-  { slug: "multimeter-digital", count: 9 },
-  { slug: "ruang-sidang", count: 8 },
-  { slug: "kamera-mirrorless", count: 6 },
-  { slug: "pc-lab-rpl", count: 5 },
-  { slug: "arduino-uno-r3", count: 4 },
-  { slug: "proyektor-portabel", count: 3 },
+  { id: "esp32", count: 18 },
+  { id: "hdmi-vga-adapter", count: 15 },
+  { id: "discussion-room-1", count: 12 },
+  { id: "sensor-kit", count: 9 },
+  { id: "auditorium", count: 8 },
+  { id: "camera", count: 6 },
+  { id: "computer-lab-1", count: 5 },
+  { id: "arduino-uno", count: 4 },
+  { id: "projector", count: 3 },
 ]);
 type RankedItem = (typeof RANKING)[number];
 
@@ -61,7 +62,7 @@ const PODIUM_STYLES: Record<PodiumRank, { medal: string; shadow: string; order: 
   3: { medal: "bg-rank-third", shadow: "shadow-[5px_5px_0_0_var(--color-rank-third)] sm:shadow-[7px_7px_0_0_var(--color-rank-third)]", order: "order-3" },
 };
 
-const PermissionBadge = ({ item }: { item: RankedItem }) => <StatusBadge status={item.facility.permission} />;
+const PermissionBadge = ({ item }: { item: RankedItem }) => <StatusBadge status={item.facility.level} />;
 
 /** Podium card (ranks 1–3). */
 function PodiumCard({ item, rank, multiplier, locale }: { item: RankedItem; rank: PodiumRank; multiplier: number; locale: Locale }) {
@@ -83,33 +84,27 @@ function PodiumCard({ item, rank, multiplier, locale }: { item: RankedItem; rank
         {rank}
       </span>
       <div
-        className={`flex w-full items-center justify-center rounded-[18px] border-2 border-line-strong bg-sun-200 ${isWinner ? "p-[26px]" : "p-[18px]"}`}
+        className={`flex w-full items-center justify-center rounded-[18px] border-2 border-line-strong ${CATEGORY_STYLE[f.category].panel} ${isWinner ? "p-[26px]" : "p-[18px]"}`}
       >
-        <Image
-          src={FACILITY_ILLUSTRATIONS[f.illustration]}
-          alt=""
-          width={imageSize}
-          height={imageSize}
-          style={{ width: imageSize, height: imageSize }}
-        />
+        <FacilityIllustration id={f.illustration} size={imageSize} className={isWinner ? "size-[140px]" : "size-[100px]"} />
       </div>
       <h3 className={`font-display text-center font-normal leading-[normal] text-ink ${isWinner ? "text-[30px]" : "text-[26px]"}`}>
         {rank === 3 ? (
-          <Link href={`/catalog/${f.slug}`} className="hover:underline">
+          <Link href={`/catalog/${f.id}`} className="hover:underline">
             {f.name}
           </Link>
         ) : (
           f.name
         )}
       </h3>
-      <span className="text-[12px] font-extrabold uppercase leading-[normal] text-ink-accent">{COMMON_TEXT[locale].groups[f.group]}</span>
+      <CategoryBadge category={f.category} />
       <p className="flex items-end gap-2 leading-[normal]">
         <span className={`font-display text-ink ${isWinner ? "text-[48px]" : "text-[40px]"}`}>{count * multiplier}×</span>
         <span className="pb-1 text-[14px] font-bold text-ink-muted">{t.borrowed}</span>
       </p>
       <PermissionBadge item={item} />
       {rank !== 3 && (
-        <Link href={`/catalog/${f.slug}`} className={`${PRESS_BUTTON} bg-brand-primary text-on-primary px-[18px] py-2 text-[15px]`}>
+        <Link href={`/catalog/${f.id}`} className={`${PRESS_BUTTON} bg-brand-primary text-on-primary px-[18px] py-2 text-[15px]`}>
           {t.viewDetail}
         </Link>
       )}
@@ -120,7 +115,6 @@ function PodiumCard({ item, rank, multiplier, locale }: { item: RankedItem; rank
 export default function MostBorrowedPage() {
   const { locale } = useLocale();
   const t = ROOM_SCHEDULE_TEXT[locale].mostBorrowed;
-  const groups = COMMON_TEXT[locale].groups;
   const [period, setPeriod] = useState<PeriodKey>("week");
   const multiplier = PERIODS.find((p) => p.key === period)?.multiplier ?? 1;
 
@@ -164,7 +158,7 @@ export default function MostBorrowedPage() {
         {/* Podium: visual order 2-1-3 on wide screens, 1-2-3 stacked on small screens */}
         <ol aria-label={t.podiumLabel} className="flex w-full flex-col gap-6 md:flex-row md:items-end md:gap-[26px]">
           {PODIUM.map((item, i) => (
-            <PodiumCard key={item.slug} item={item} rank={(i + 1) as PodiumRank} multiplier={multiplier} locale={locale} />
+            <PodiumCard key={item.id} item={item} rank={(i + 1) as PodiumRank} multiplier={multiplier} locale={locale} />
           ))}
         </ol>
 
@@ -182,7 +176,7 @@ export default function MostBorrowedPage() {
               const total = count * multiplier;
               return (
                 <li
-                  key={f.slug}
+                  key={f.id}
                   className={`group grid grid-cols-[34px_54px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 rounded-[14px] px-3 py-[10px] focus-within:bg-surface-row md:grid-cols-[34px_54px_minmax(140px,230px)_minmax(0,1fr)_56px_auto_88px] ${
                     i % 2 === 0 ? "bg-surface-row" : "bg-surface"
                   }`}
@@ -193,12 +187,12 @@ export default function MostBorrowedPage() {
                   >
                     {rank}
                   </span>
-                  <span className="rounded-[12px] border-2 border-line-strong bg-sun-200 p-[5px]">
-                    <Image src={FACILITY_ILLUSTRATIONS[f.illustration]} alt="" width={40} height={40} className="size-10" />
+                  <span className={`rounded-[12px] border-2 border-line-strong p-[5px] ${CATEGORY_STYLE[f.category].panel}`}>
+                    <FacilityIllustration id={f.illustration} size={40} className="size-10" />
                   </span>
                   <div className="flex min-w-0 flex-col leading-[normal]">
                     <span className="truncate text-[16px] font-extrabold text-ink">{f.name}</span>
-                    <span className="text-[12px] font-bold text-ink-muted">{groups[f.group]}</span>
+                    <CategoryBadge category={f.category} />
                   </div>
 
                   <div className="col-span-3 flex items-center gap-3 md:contents">
@@ -218,7 +212,7 @@ export default function MostBorrowedPage() {
                   <div className="col-span-3 flex items-center justify-between gap-3 md:contents">
                     <PermissionBadge item={item} />
                     <Link
-                      href={`/catalog/${f.slug}`}
+                      href={`/catalog/${f.id}`}
                       className={`${PRESS_BUTTON} bg-brand-primary text-on-primary px-4 py-[6px] text-[14px] md:justify-self-end md:opacity-0 md:transition-opacity md:group-focus-within:opacity-100 md:group-hover:opacity-100 md:focus-visible:opacity-100`}
                     >
                       {t.borrow}

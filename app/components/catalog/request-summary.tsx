@@ -3,26 +3,28 @@
 // "Ringkasan" page content (Figma node 1:1633 / 1:1856 / 1:2075): request ticket + "Langkah berikutnya".
 // Status & timeline follow the facility's permission level:
 //   verification → "Menunggu verifikasi" (yellow)   letter → "Surat diperiksa" (orange)   direct → "Disetujui" (green)
-// Data from the query: ?kode=PJM-1102-4821&hari=2026-11-02&sesi=0&jumlah=1 (from the request form)
+// Data from the query: ?kode=PJM-1102-4821 + the selection of the facility's booking mode (from the request form).
+// Rows, lead, and the "use" step follow the booking mode (Figma 2.4 per hari / 3.4 per sesi; BOOKING_MODES).
 // Name & student ID are read from sessionStorage REQUEST_STORAGE_KEY (written by the form). Empty → "-".
 // Text: BOOKING_TEXT.summary (app/i18n/booking-flow.ts); facility content via localizeFacility.
 // The QR code here is DECORATIVE (a pattern from the code, like "Kode QR contoh" in Figma). Use a real QR once there is an API.
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FACILITY_ILLUSTRATIONS } from "@/app/design/icon-map";
+import { CATEGORY_STYLE } from "@/app/design/category-style";
 import Stepper from "@/app/components/layout/stepper";
 import StatusBadge from "@/app/components/ui/status-badge";
-import type { Facility } from "@/app/data/facilities";
+import { bookingMode, type BookingMode, type Facility } from "@/app/data/facilities";
+import { modeOf } from "./booking/registry";
+import CategoryBadge from "@/app/components/ui/category-badge";
+import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
-import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
+import { localizeFacility, type FacilityView } from "@/app/i18n/facilities";
 import { useLocale } from "@/app/components/layout/language";
-import { REQUEST_STORAGE_KEY, parseSubmittedQuery, sessionLabel, sessionStart } from "@/app/lib/booking";
-import { formatShortDate } from "@/app/lib/date";
+import { REQUEST_STORAGE_KEY, parseSubmittedQuery } from "@/app/lib/booking";
 
 type SummaryText = (typeof BOOKING_TEXT)["id"]["summary"];
 
@@ -32,20 +34,19 @@ const ACTION_BUTTON =
 type StepState = "done" | "active" | "upcoming";
 type NextStep = { state: StepState; title: string; detail?: string };
 
-function buildNextSteps(f: Facility, when: string, t: SummaryText["steps"]): NextStep[] {
-  const isRoom = f.unit === "person";
-  const use = isRoom ? t.useRoom : t.pickUp;
-  const finish: NextStep = { state: "upcoming", title: isRoom ? t.done : t.returnItem, detail: t.afterSession };
+function buildNextSteps(f: FacilityView, mode: BookingMode, when: string, until: string, t: SummaryText["steps"]): NextStep[] {
+  const use = { daily: t.pickUp, session: t.useRoom }[mode];
+  const finish: NextStep = { state: "upcoming", title: { daily: t.returnItem, session: t.done }[mode], detail: until };
   const sent: NextStep = { state: "done", title: t.sent, detail: t.justNow };
 
-  if (f.permission === "direct") {
+  if (f.level === "direct") {
     return [sent, { state: "done", title: t.autoApproved, detail: t.justNow }, { state: "active", title: use, detail: when }, finish];
   }
   return [
     sent,
     {
       state: "active",
-      title: f.permission === "letter" ? t.letterCheck : t.staffCheck,
+      title: f.level === "letter" ? t.letterCheck : t.staffCheck,
       detail: t.estimate,
     },
     { state: "upcoming", title: t.decision },
@@ -111,7 +112,8 @@ export default function RequestSummary({ facility: original }: { facility: Facil
   const f = localizeFacility(original, locale);
   const text = BOOKING_TEXT[locale];
   const t = text.summary;
-  const request = parseSubmittedQuery(useSearchParams(), f.maxQuantity);
+  const mode = bookingMode(original);
+  const request = parseSubmittedQuery(useSearchParams(), original);
   const code = request?.code;
 
   // name & student ID from sessionStorage (browser only → read after mount)
@@ -130,7 +132,7 @@ export default function RequestSummary({ facility: original }: { facility: Facil
 
   if (!request) {
     return (
-      <SummaryShell>
+      <SummaryShell mode={mode}>
         <div className="flex max-w-[560px] flex-col items-start gap-4 rounded-[20px] border-2 border-line-strong bg-surface p-6 shadow-[5px_5px_0_0_var(--color-shadow)]">
           <h1 className="font-display text-[28px] leading-none text-ink">{t.emptyTitle}</h1>
           <p className="text-[15px] text-ink-body">{t.emptyText}</p>
@@ -143,18 +145,18 @@ export default function RequestSummary({ facility: original }: { facility: Facil
   }
 
   const qr = decorativeQrPattern(request.code);
-  const dateLabel = formatShortDate(request.day, locale);
-  const nextSteps = buildNextSteps(f, `${dateLabel}, ${sessionStart(request.session, locale)}`, t.steps);
-  const rows = text.summaryRows;
-  const details: [string, string][] = [
-    [rows.date, dateLabel],
-    [rows.session, sessionLabel(request.session, locale)],
-    [rows.quantity, FACILITY_TEXT[locale].quantity(request.quantity, f.unit)],
-    [rows.borrower, borrower],
-  ];
+  const selectionMode = modeOf(request.selection);
+  const nextSteps = buildNextSteps(
+    f,
+    mode,
+    selectionMode.useDetail(request.selection, locale),
+    selectionMode.finishDetail(request.selection, locale),
+    t.steps,
+  );
+  const details = [...selectionMode.rows(request.selection, f, locale), [text.summaryRows.borrower, borrower] as const];
 
   return (
-    <SummaryShell>
+    <SummaryShell mode={mode}>
       {/* Success heading */}
       <div className="flex items-center gap-4 sm:gap-[18px]">
         <span className="font-display flex size-14 shrink-0 items-center justify-center rounded-full border-2 border-line-strong bg-status-available text-[20px] text-on-accent shadow-[3px_3px_0_0_var(--color-shadow)] sm:size-[72px] sm:text-[26px] sm:shadow-[4px_4px_0_0_var(--color-shadow)]">
@@ -164,7 +166,7 @@ export default function RequestSummary({ facility: original }: { facility: Facil
           <h1 className="font-display text-[32px] font-normal leading-[1.05] text-ink sm:text-[44px] xl:text-[52px]">
             {t.title}
           </h1>
-          <p className="text-[15px] text-ink-body sm:text-[17px]">{t.lead}</p>
+          <p className="text-[15px] text-ink-body sm:text-[17px]">{t.leads[mode]}</p>
         </div>
       </div>
 
@@ -178,16 +180,17 @@ export default function RequestSummary({ facility: original }: { facility: Facil
             <span className="text-[12px] font-extrabold">{t.codeLabel}</span>
             <span className="font-display text-[28px] leading-[normal] sm:text-[32px]">{request.code}</span>
           </div>
-          <StatusBadge status={f.permission} label={t.statusLabels[f.permission]} />
+          <StatusBadge status={f.level} label={t.statusLabels[f.level]} />
         </div>
 
         <div className="flex flex-col gap-6 p-5 sm:p-7 md:flex-row md:items-start md:gap-[30px]">
           <div className="flex min-w-0 flex-1 flex-col gap-[6px]">
             <div className="flex items-center gap-4">
-              <span className="shrink-0 rounded-[14px] border-2 border-line-strong bg-sun-200 p-2">
-                <Image src={FACILITY_ILLUSTRATIONS[f.illustration]} alt="" width={64} height={64} className="size-14 sm:size-16" />
+              <span className={`shrink-0 rounded-[14px] border-2 border-line-strong p-2 ${CATEGORY_STYLE[f.category].panel}`}>
+                <FacilityIllustration id={f.illustration} size={64} className="size-14 sm:size-16" />
               </span>
-              <div className="flex min-w-0 flex-col gap-[2px]">
+              <div className="flex min-w-0 flex-col items-start gap-[2px]">
+                <CategoryBadge category={f.category} />
                 <span className="font-display text-[26px] leading-[normal] text-ink sm:text-[30px]">{f.name}</span>
                 <span className="text-[14px] font-bold text-ink-muted">{f.location}</span>
               </div>
@@ -245,11 +248,11 @@ export default function RequestSummary({ facility: original }: { facility: Facil
   );
 }
 
-function SummaryShell({ children }: { children: React.ReactNode }) {
+function SummaryShell({ mode, children }: { mode: BookingMode; children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-page px-5 pb-14 pt-[112px] sm:px-8 sm:pb-16 sm:pt-[132px] xl:px-[140px] xl:pb-20">
       <div className="mx-auto flex max-w-[1160px] flex-col gap-[22px]">
-        <Stepper active={5} />
+        <Stepper active={5} mode={mode} />
         {children}
       </div>
     </main>

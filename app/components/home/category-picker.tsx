@@ -1,56 +1,46 @@
 // app/components/home/category-picker.tsx
 //
 // "Mau pinjam apa hari ini?" section (Figma node 1:3241, desktop 1440px).
-// 6 category cards + filter chips (Semua / Hardware / Ruang / Logistik).
+// 6 subcategory cards + filter chips (Semua + CATEGORY_ORDER).
 // Card layout lives in CATEGORIES below; card text lives in HOME_TEXT.categoryPicker (app/i18n/home.ts).
-// Illustrations: CATEGORY_ILLUSTRATIONS from icon-map (public/img/illustrations/*.svg).
+// Panel and tag colors: CATEGORY_STYLE (app/design/category-style.ts), so the cards match the catalog.
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { CATEGORY_ILLUSTRATIONS, UI_ICONS, type CategoryIllustrationKey } from "@/app/design/icon-map";
-import { FACILITY_GROUPS, type FacilityGroup, type SubcategoryKey } from "@/app/data/facilities";
+import { CATEGORY_STYLE } from "@/app/design/category-style";
+import { UI_ICONS, type IllustrationId } from "@/app/design/icon-map";
+import CategoryBadge from "@/app/components/ui/category-badge";
+import FacilityIllustration from "@/app/components/ui/facility-illustration";
+import { CATEGORY_ORDER, SUBCATEGORIES, type FacilityCategory, type SubcategoryKey } from "@/app/data/facilities";
 import { COMMON_TEXT } from "@/app/i18n/common";
 import { HOME_TEXT } from "@/app/i18n/home";
 import { useLocale } from "@/app/components/layout/language";
 
-type Tone = "yellow" | "mint" | "periwinkle";
-
-// Decorative illustration panels: fixed accent fills, the same in both themes (navy SVG lines stay readable).
-const TONE_CLASSES: Record<Tone, string> = {
-  yellow: "bg-sun-200",
-  mint: "bg-mint-300",
-  periwinkle: "bg-periwinkle-400",
-};
-
-const CATEGORIES: readonly {
-  /** ?kategori= value on the catalog page */
-  subcategory: SubcategoryKey;
-  illustration: CategoryIllustrationKey;
-  group: FacilityGroup;
-  tone: Tone;
-}[] = [
-  { subcategory: "mikrokontroler", illustration: "mikrokontroler", group: "hardware", tone: "yellow" },
-  { subcategory: "perangkat-jaringan", illustration: "perangkat-jaringan", group: "hardware", tone: "mint" },
-  { subcategory: "alat-ukur", illustration: "alat-ukur", group: "hardware", tone: "periwinkle" },
-  { subcategory: "ruang-diskusi", illustration: "ruang-diskusi", group: "room", tone: "yellow" },
-  { subcategory: "kursi-pc-lab", illustration: "kursi", group: "room", tone: "mint" },
-  { subcategory: "kamera-acara", illustration: "kamera", group: "logistics", tone: "periwinkle" },
+/** Card order; each card links to /catalog?kategori=<subcategory>. Its category comes from SUBCATEGORIES. */
+const CARDS: readonly { subcategory: SubcategoryKey; illustration: IllustrationId }[] = [
+  { subcategory: "mikrokontroler", illustration: "mikrokontroler" },
+  { subcategory: "perangkat-jaringan", illustration: "perangkat-jaringan" },
+  { subcategory: "alat-ukur", illustration: "alat-ukur" },
+  { subcategory: "ruang-diskusi", illustration: "ruang-diskusi" },
+  { subcategory: "kursi-pc-lab", illustration: "kursi" },
+  { subcategory: "kamera-acara", illustration: "kamera" },
 ];
 
-type Filter = "all" | FacilityGroup;
-const FILTERS: readonly Filter[] = ["all", ...FACILITY_GROUPS];
+type Filter = "all" | FacilityCategory;
+const FILTERS: readonly Filter[] = ["all", ...CATEGORY_ORDER];
 
 export default function CategoryPicker() {
   const { locale } = useLocale();
   const t = HOME_TEXT[locale].categoryPicker;
   const common = COMMON_TEXT[locale];
-  const filterLabel = (f: Filter) => (f === "all" ? common.all : common.groups[f]);
+  const filterLabel = (f: Filter) => (f === "all" ? common.all : common.categories[f]);
   const [filter, setFilter] = useState<Filter>("all");
   const GoTo = UI_ICONS.goTo;
-  const visible = CATEGORIES.filter((c) => filter === "all" || c.group === filter);
+  const visible = CARDS.map((c) => ({ ...c, category: SUBCATEGORIES[c.subcategory].category })).filter(
+    (c) => filter === "all" || c.category === filter,
+  );
 
   return (
     <section
@@ -80,7 +70,7 @@ export default function CategoryPicker() {
                   onClick={() => setFilter(f)}
                   className={[
                     "h-11 rounded-full border-2 border-line-strong px-[18px] text-[16px] font-bold leading-[1.3] transition-colors",
-                    active ? "bg-ink text-on-ink" : "bg-surface text-ink hover:bg-surface-warm",
+                    active ? (f === "all" ? "bg-ink text-on-ink" : CATEGORY_STYLE[f].filterActive) : "bg-surface text-ink hover:bg-surface-warm",
                   ].join(" ")}
                 >
                   {filterLabel(f)}
@@ -100,15 +90,9 @@ export default function CategoryPicker() {
               >
                 {/* illustration panel */}
                 <div
-                  className={`flex w-[116px] shrink-0 items-center justify-center border-r-2 border-line-strong sm:w-[160px] ${TONE_CLASSES[c.tone]}`}
+                  className={`flex w-[116px] shrink-0 items-center justify-center border-r-2 border-line-strong sm:w-[160px] ${CATEGORY_STYLE[c.category].panel}`}
                 >
-                  <Image
-                    src={CATEGORY_ILLUSTRATIONS[c.illustration]}
-                    alt=""
-                    width={120}
-                    height={120}
-                    className="size-[84px] sm:size-[120px]"
-                  />
+                  <FacilityIllustration id={c.illustration} size={120} className="size-[84px] sm:size-[120px]" />
                 </div>
 
                 {/* body */}
@@ -129,9 +113,7 @@ export default function CategoryPicker() {
                     {t.cards[c.subcategory].description}
                   </p>
 
-                  <span className="rounded-[10px] border-2 border-line-strong px-[14px] py-[7px] text-[14px] font-bold leading-[1.3] text-ink">
-                    {common.groups[c.group]}
-                  </span>
+                  <CategoryBadge category={c.category} />
                 </div>
               </Link>
             </li>

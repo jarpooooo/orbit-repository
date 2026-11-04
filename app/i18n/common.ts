@@ -2,20 +2,21 @@
 //
 // Labels shared by several pages.
 
-import { GROUP_LABELS, type FacilityGroup, type PermissionLevel } from "@/app/data/facilities";
+import type { FacilityCategory, PermissionLevel } from "@/app/data/facilities";
 import type { Dictionary, Locale } from "./locale";
 
 const id = {
   /** "Semua" chip in category filters */
   all: "Semua",
-  groups: GROUP_LABELS as Record<FacilityGroup, string>,
+  /** facility categories (CATEGORY_ORDER) */
+  categories: { hardware: "Hardware", room: "Ruangan", multimedia: "Multimedia", logistics: "Logistik" } as Record<FacilityCategory, string>,
   levels: { direct: "Langsung", verification: "Verifikasi", letter: "Perlu surat" } as Record<PermissionLevel, string>,
   simulatedData: "Data simulasi untuk prototipe.",
 };
 
 const en: typeof id = {
   all: "All",
-  groups: { hardware: "Hardware", room: "Rooms", logistics: "Logistics" },
+  categories: { hardware: "Hardware", room: "Rooms", multimedia: "Multimedia", logistics: "Logistics" },
   levels: { direct: "Direct", verification: "Verification", letter: "Letter required" },
   simulatedData: "Simulated data for the prototype.",
 };

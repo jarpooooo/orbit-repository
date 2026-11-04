@@ -1,0 +1,22 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Ilustrasi chip">
+<path id="Vector" d="M71.6667 20H28.3333C23.731 20 20 23.731 20 28.3333V71.6667C20 76.269 23.731 80 28.3333 80H71.6667C76.269 80 80 76.269 80 71.6667V28.3333C80 23.731 76.269 20 71.6667 20Z" fill="#1F4FD8" stroke-width="3" stroke="#0D2A4B"/>
+<path id="Vector_2" d="M60.8333 35H39.1667C36.8655 35 35 36.8655 35 39.1667V60.8333C35 63.1345 36.8655 65 39.1667 65H60.8333C63.1345 65 65 63.1345 65 60.8333V39.1667C65 36.8655 63.1345 35 60.8333 35Z" fill="#2EE6B0" stroke-width="3" stroke="#0D2A4B"/>
+<g id="Vector_3">
+<path d="M28.3333 20V10ZM28.3333 80V90ZM20 28.3333H10ZM80 28.3333H90Z" fill="black"/>
+<path d="M28.3333 20V10M28.3333 80V90M20 28.3333H10M80 28.3333H90" stroke-width="4" stroke-linecap="round" stroke="#0D2A4B"/>
+</g>
+<g id="Vector_4">
+<path d="M41.6667 20V10ZM41.6667 80V90ZM20 41.6667H10ZM80 41.6667H90Z" fill="black"/>
+<path d="M41.6667 20V10M41.6667 80V90M20 41.6667H10M80 41.6667H90" stroke-width="4" stroke-linecap="round" stroke="#0D2A4B"/>
+</g>
+<g id="Vector_5">
+<path d="M55 20V10ZM55 80V90ZM20 55H10ZM80 55H90Z" fill="black"/>
+<path d="M55 20V10M55 80V90M20 55H10M80 55H90" stroke-width="4" stroke-linecap="round" stroke="#0D2A4B"/>
+</g>
+<g id="Vector_6">
+<path d="M68.3333 20V10ZM68.3333 80V90ZM20 68.3333H10ZM80 68.3333H90Z" fill="black"/>
+<path d="M68.3333 20V10M68.3333 80V90M20 68.3333H10M80 68.3333H90" stroke-width="4" stroke-linecap="round" stroke="#0D2A4B"/>
+</g>
+</g>
+</svg>

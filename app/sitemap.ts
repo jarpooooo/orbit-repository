@@ -15,8 +15,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const facilityPages: MetadataRoute.Sitemap = FACILITIES.flatMap((f) => [
-    { url: `${SITE_URL}/catalog/${f.slug}`, changeFrequency: "weekly", priority: 0.7 },
-    { url: `${SITE_URL}/catalog/${f.slug}/schedule`, changeFrequency: "daily", priority: 0.5 },
+    { url: `${SITE_URL}/catalog/${f.id}`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/catalog/${f.id}/schedule`, changeFrequency: "daily", priority: 0.5 },
   ]);
 
   return [...pages, ...facilityPages];

@@ -3,7 +3,9 @@
 // Text for the request flow: Jadwal (schedule-picker), Ajukan (request-form), Ringkasan (request-summary),
 // and Pratinjau surat (letter-preview). The generated letter itself stays Indonesian (official document).
 
-import type { PermissionLevel } from "@/app/data/facilities";
+import type { BookingMode, PermissionLevel } from "@/app/data/facilities";
+import type { ScheduleErrorKey } from "@/app/lib/booking";
+import type { StockLevel } from "@/app/data/availability";
 import type { Dictionary } from "./locale";
 
 /** Validation / action errors in the request form (stored as keys so they follow a language switch). */
@@ -22,7 +24,56 @@ export type RequestErrorKey =
 const id = {
   /** breadcrumb labels for the flow pages */
   crumbs: { schedule: "Jadwal", request: "Ajukan", letter: "Pratinjau surat" },
-  summaryRows: { facility: "Fasilitas", day: "Hari", date: "Tanggal", session: "Sesi", people: "Peserta", quantity: "Jumlah", permission: "Izin", location: "Lokasi", borrower: "Peminjam" },
+  summaryRows: { facility: "Fasilitas", day: "Hari", date: "Tanggal", session: "Sesi", people: "Peserta", quantity: "Jumlah", permission: "Izin", location: "Lokasi", borrower: "Peminjam", item: "Barang", room: "Ruang", pickup: "Ambil", return: "Kembali", deposit: "Jaminan" },
+
+  /** Per booking mode: step-3 label (stepper + breadcrumb) and the name row of the summaries. */
+  modes: { daily: { step: "Tanggal", nameRow: "Barang" }, session: { step: "Jadwal", nameRow: "Ruang" } } as Record<BookingMode, { step: string; nameRow: string }>,
+  /** "Sen, 26 Okt · 08.00–16.00" */
+  pickupValue: (date: string, hours: string) => `${date} · ${hours}`,
+  /** "Rab, 28 Okt · sebelum 16.00" */
+  returnValue: (date: string, time: string) => `${date} · sebelum ${time}`,
+  scheduleErrors: {
+    pickupRequired: "Pilih tanggal ambil.",
+    returnRequired: "Pilih tanggal kembali.",
+    returnBeforePickup: "Tanggal kembali tidak boleh sebelum tanggal ambil.",
+    tooLong: "Terlalu lama. Pilih rentang yang lebih pendek.",
+    unavailableDay: "Ada hari habis atau tutup di rentang itu. Pilih tanggal lain.",
+    unitsOverStock: "Jumlah melebihi stok di tanggal itu.",
+    dayRequired: "Pilih hari.",
+    sessionRequired: "Pilih sesi.",
+    sessionFull: "Sesi itu sudah penuh.",
+    quantityRange: "Jumlah di luar batas yang diizinkan.",
+    outOfRange: "Tanggal itu sudah lewat atau terlalu jauh ke depan.",
+  } as Record<ScheduleErrorKey, string>,
+
+  daily: {
+    title: "Kapan kamu pinjam?",
+    lead: (days: number) => `Pilih tanggal ambil, lalu tanggal kembali. Maksimal ${days} hari.`,
+    calendarLabel: "Kalender peminjaman",
+    prevRange: "Dua pekan sebelumnya",
+    nextRange: "Dua pekan berikutnya",
+    pickupTag: "Ambil",
+    returnTag: "Kembali",
+    stock: { ok: "Stok aman", low: "Stok sedikit", out: "Habis", closed: "Tutup" } as Record<StockLevel, string>,
+    tooLong: (days: number) => `Maksimal ${days} hari. Pilih tanggal kembali yang lebih dekat.`,
+    pickupTile: "AMBIL",
+    returnTile: "KEMBALI",
+    pickupHint: (hours: string) => `Kapan saja ${hours}`,
+    returnHint: (time: string) => `Sebelum ${time}`,
+    notChosen: "Belum dipilih",
+    choosing: "Sedang dipilih",
+    pickPickup: "Pilih tanggal ambil di kalender.",
+    pickReturn: (days: number) => `Sekarang pilih tanggal kembali (paling lama ${days} hari). Klik AMBIL untuk mengganti tanggal ambil.`,
+    editPickup: "Ganti tanggal ambil",
+    editReturn: "Ganti tanggal kembali",
+    outOfReach: "Di luar batas pinjam",
+    unitsTitle: "Jumlah unit",
+    unitsAvailable: (n: number) => `${n} unit tersedia di tanggal ini`,
+    summaryTitle: "Ringkasan",
+    loanMeta: (days: number, quantity: string) => `${days} hari · ${quantity}`,
+    cancelNote: (time: string) => `Belum diambil sampai ${time}? Pesanan batal otomatis.`,
+    continue: "Lanjut isi data",
+  },
 
   schedule: {
     title: "Pilih jadwal",
@@ -50,7 +101,7 @@ const id = {
 
   request: {
     noScheduleTitle: "Jadwal belum dipilih",
-    noScheduleText: "Pilih hari, sesi, dan jumlah dulu sebelum mengisi data peminjam.",
+    noScheduleText: "Pilih jadwal dan jumlah dulu sebelum mengisi data peminjam.",
     chooseSchedule: "Pilih jadwal",
     title: "Data peminjam",
     lead: "Isi singkat saja, hanya yang dibutuhkan petugas.",
@@ -87,6 +138,9 @@ const id = {
     successBadge: "OK",
     title: "Pengajuan terkirim!",
     lead: "Simpan kode di bawah untuk diambil di loket.",
+    leads: { daily: "Tunjukkan QR ini + KTM saat ambil di loket.", session: "Tunjukkan QR ini ke petugas gedung untuk membuka ruangan." } as Record<BookingMode, string>,
+    pickUpWhen: (date: string, hours: string) => `${date} · kapan saja ${hours}`,
+    returnWhen: (date: string, time: string) => `${date} · sebelum ${time}`,
     ticketLabel: "Tiket pengajuan",
     codeLabel: "KODE PENGAJUAN",
     /** ticket header badge (text exactly as in Figma) */
@@ -98,7 +152,7 @@ const id = {
       justNow: "Baru saja",
       autoApproved: "Disetujui otomatis",
       useRoom: "Gunakan ruangan",
-      pickUp: "Ambil di loket",
+      pickUp: "Ambil di loket (bawa KTM)",
       done: "Selesai",
       returnItem: "Kembalikan",
       afterSession: "Setelah sesi selesai",
@@ -128,7 +182,53 @@ const id = {
 
 const en: typeof id = {
   crumbs: { schedule: "Schedule", request: "Request", letter: "Letter preview" },
-  summaryRows: { facility: "Facility", day: "Day", date: "Date", session: "Session", people: "People", quantity: "Quantity", permission: "Permission", location: "Location", borrower: "Borrower" },
+  summaryRows: { facility: "Facility", day: "Day", date: "Date", session: "Session", people: "People", quantity: "Quantity", permission: "Permission", location: "Location", borrower: "Borrower", item: "Item", room: "Room", pickup: "Pick up", return: "Return", deposit: "Deposit" },
+
+  modes: { daily: { step: "Dates", nameRow: "Item" }, session: { step: "Schedule", nameRow: "Room" } },
+  pickupValue: (date, hours) => `${date} · ${hours}`,
+  returnValue: (date, time) => `${date} · before ${time}`,
+  scheduleErrors: {
+    pickupRequired: "Choose a pick-up date.",
+    returnRequired: "Choose a return date.",
+    returnBeforePickup: "The return date cannot be before the pick-up date.",
+    tooLong: "Too long. Choose a shorter range.",
+    unavailableDay: "That range has a sold-out or closed day. Choose other dates.",
+    unitsOverStock: "The quantity is more than the stock on those dates.",
+    dayRequired: "Choose a day.",
+    sessionRequired: "Choose a session.",
+    sessionFull: "That session is full.",
+    quantityRange: "The number is outside the allowed range.",
+    outOfRange: "That date has passed or is too far ahead.",
+  },
+
+  daily: {
+    title: "When do you need it?",
+    lead: (days) => `Choose a pick-up date, then a return date. Up to ${days} days.`,
+    calendarLabel: "Loan calendar",
+    prevRange: "Previous two weeks",
+    nextRange: "Next two weeks",
+    pickupTag: "Pick up",
+    returnTag: "Return",
+    stock: { ok: "In stock", low: "Low stock", out: "Sold out", closed: "Closed" },
+    tooLong: (days) => `Up to ${days} days. Choose an earlier return date.`,
+    pickupTile: "PICK UP",
+    returnTile: "RETURN",
+    pickupHint: (hours) => `Any time ${hours}`,
+    returnHint: (time) => `Before ${time}`,
+    notChosen: "Not chosen yet",
+    choosing: "Choosing",
+    pickPickup: "Choose a pick-up date in the calendar.",
+    pickReturn: (days) => `Now choose a return date (up to ${days} days). Click PICK UP to change the pick-up date.`,
+    editPickup: "Change pick-up date",
+    editReturn: "Change return date",
+    outOfReach: "Beyond the loan limit",
+    unitsTitle: "Number of units",
+    unitsAvailable: (n) => `${n} ${n === 1 ? "unit" : "units"} available on these dates`,
+    summaryTitle: "Summary",
+    loanMeta: (days, quantity) => `${days} ${days === 1 ? "day" : "days"} · ${quantity}`,
+    cancelNote: (time) => `Not picked up by ${time}? The request is cancelled automatically.`,
+    continue: "Continue to details",
+  },
 
   schedule: {
     title: "Choose a time",
@@ -156,7 +256,7 @@ const en: typeof id = {
 
   request: {
     noScheduleTitle: "No time chosen yet",
-    noScheduleText: "Pick a day, session, and quantity before filling in the borrower details.",
+    noScheduleText: "Choose a time and quantity before filling in the borrower details.",
     chooseSchedule: "Choose a time",
     title: "Borrower details",
     lead: "Keep it short, only what the staff need.",
@@ -193,6 +293,9 @@ const en: typeof id = {
     successBadge: "OK",
     title: "Request sent!",
     lead: "Keep the code below to collect it at the counter.",
+    leads: { daily: "Show this QR code and your student ID at the counter.", session: "Show this QR code to the building staff to open the room." },
+    pickUpWhen: (date, hours) => `${date} · any time ${hours}`,
+    returnWhen: (date, time) => `${date} · before ${time}`,
     ticketLabel: "Request ticket",
     codeLabel: "REQUEST CODE",
     statusLabels: { verification: "Awaiting verification", letter: "Letter under review", direct: "Approved" },
@@ -203,7 +306,7 @@ const en: typeof id = {
       justNow: "Just now",
       autoApproved: "Approved automatically",
       useRoom: "Use the room",
-      pickUp: "Pick up at the counter",
+      pickUp: "Pick up at the counter (bring your student ID)",
       done: "Done",
       returnItem: "Return it",
       afterSession: "After the session ends",

@@ -8,18 +8,18 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { FACILITY_ILLUSTRATIONS } from "@/app/design/icon-map";
+import { CATEGORY_STYLE } from "@/app/design/category-style";
+import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import StatusBadge from "@/app/components/ui/status-badge";
 import { withFacilities, type AvailabilityStatus } from "@/app/data/facilities";
-import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
+import { localizeFacility } from "@/app/i18n/facilities";
 import { MY_REQUESTS_TEXT, type RequestStatusKey } from "@/app/i18n/my-requests";
 import { useLocale } from "@/app/components/layout/language";
-import { sessionLabel } from "@/app/lib/booking";
-import { formatShortDate, parseIsoDate } from "@/app/lib/date";
+import type { BookingSelection } from "@/app/lib/booking";
+import { modeOf } from "@/app/components/catalog/booking/registry";
 
 /** Badge color per request status (from STATUS_STYLES: verification=yellow, letter=orange, direct=green, borrowed=gray). */
 const STATUS_COLORS: Record<RequestStatusKey, AvailabilityStatus> = {
@@ -31,23 +31,21 @@ const STATUS_COLORS: Record<RequestStatusKey, AvailabilityStatus> = {
 
 type BorrowRequest = {
   code: string;
-  slug: string;
-  /** yyyy-mm-dd */
-  date: string;
-  /** index into SESSIONS */
-  session: number;
-  quantity: number;
+  /** facility id */
+  id: string;
+  /** schedule, in the shape of the facility's booking mode */
+  selection: BookingSelection;
   status: Exclude<RequestStatusKey, "cancelled">;
   /** requests that have not happened yet can be cancelled */
   cancellable: boolean;
 };
 
-// Sample data (from Figma). Newest first.
+// Sample data (from Figma, facilities mapped to the current catalog). Newest first.
 const SAMPLE_REQUESTS: readonly BorrowRequest[] = [
-  { code: "PJM-1026-0016", slug: "converter-hdmi", date: "2026-10-26", session: 0, quantity: 1, status: "approved", cancellable: true },
-  { code: "PJM-1026-0015", slug: "ruang-sidang", date: "2026-10-26", session: 0, quantity: 1, status: "letterReview", cancellable: true },
-  { code: "PJM-1026-0014", slug: "kit-esp32", date: "2026-10-26", session: 0, quantity: 1, status: "verifying", cancellable: true },
-  { code: "PJM-1024-0012", slug: "kit-esp32", date: "2026-10-19", session: 0, quantity: 1, status: "approved", cancellable: false },
+  { code: "PJM-1026-0016", id: "hdmi-vga-adapter", selection: { mode: "daily", pickupDate: "2026-10-26", returnDate: "2026-10-26", units: 1 }, status: "approved", cancellable: true },
+  { code: "PJM-1026-0015", id: "auditorium", selection: { mode: "session", date: "2026-10-26", sessionId: 0, participants: 120 }, status: "letterReview", cancellable: true },
+  { code: "PJM-1026-0014", id: "esp32", selection: { mode: "daily", pickupDate: "2026-10-26", returnDate: "2026-10-28", units: 1 }, status: "verifying", cancellable: true },
+  { code: "PJM-1024-0012", id: "esp32", selection: { mode: "daily", pickupDate: "2026-10-19", returnDate: "2026-10-21", units: 1 }, status: "approved", cancellable: false },
 ];
 
 const REQUESTS = withFacilities(SAMPLE_REQUESTS);
@@ -73,25 +71,14 @@ export default function MyRequestsPage() {
             const facility = localizeFacility(request.facility, locale);
             const cancelled = cancelledCodes.has(request.code);
             const status: RequestStatusKey = cancelled ? "cancelled" : request.status;
-            const day = parseIsoDate(request.date);
-            const when = [
-              day ? formatShortDate(day, locale) : request.date,
-              sessionLabel(request.session, locale),
-              FACILITY_TEXT[locale].quantity(request.quantity, facility.unit),
-            ].join(" · ");
+            const when = modeOf(request.selection).line(request.selection, facility, locale);
             return (
               <li
                 key={request.code}
                 className="flex flex-wrap items-center gap-x-[18px] gap-y-3 rounded-[18px] border-2 border-line-strong bg-surface px-4 py-4 shadow-[3px_3px_0_0_var(--color-shadow)] sm:px-5 sm:shadow-[4px_4px_0_0_var(--color-shadow)]"
               >
-                <span className="shrink-0 rounded-[14px] border-2 border-line-strong bg-sun-200 p-2">
-                  <Image
-                    src={FACILITY_ILLUSTRATIONS[facility.illustration]}
-                    alt=""
-                    width={60}
-                    height={60}
-                    className="size-[52px] sm:size-[60px]"
-                  />
+                <span className={`shrink-0 rounded-[14px] border-2 border-line-strong p-2 ${CATEGORY_STYLE[facility.category].panel}`}>
+                  <FacilityIllustration id={facility.illustration} size={60} className="size-[52px] sm:size-[60px]" />
                 </span>
 
                 <div className="flex min-w-[180px] flex-1 flex-col gap-[2px] leading-[normal]">
