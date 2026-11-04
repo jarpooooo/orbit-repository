@@ -5,17 +5,35 @@
 
 import type { Dictionary } from "./locale";
 
+/** "6–12" or "30" when every room has the same capacity */
+const range = (min: number, max: number) => (min === max ? `${min}` : `${min}–${max}`);
+
 const id = {
   list: {
-    title: "Katalog fasilitas",
-    lead: "Pilih ruang atau alat yang kamu butuhkan.",
-    searchPlaceholder: "Cari nama atau lokasi",
+    title: "Katalog",
+    lead: (n: number) => `${n} alat dan ruang yang bisa kamu pinjam.`,
+    searchPlaceholder: "Cari ESP32, ruang diskusi, proyektor…",
     searchLabel: "Cari fasilitas",
-    filterLabel: "Filter kategori",
+    filterLabel: "Kategori",
+    filters: {
+      label: "Filter",
+      location: "Lokasi",
+      capacity: "Kapasitas",
+      date: "Tanggal",
+      anyLocation: "Semua lokasi",
+      anyCapacity: "Semua kapasitas",
+      minPeople: (n: number) => `Minimal ${n} orang`,
+      capacityNote: "Hanya menampilkan ruangan.",
+      dateNote: "Tampilkan yang tersedia pada tanggal ini.",
+      clearDate: "Hapus tanggal",
+    },
+    seeAll: (n: number) => `Lihat semua ${n}`,
+    groupMeta: (rooms: number, min: number, max: number) => `${rooms} ruang · ${range(min, max)} orang`,
+    group: "Jenis ruangan:",
     subcategory: "Kategori:",
     clearSubcategory: "Hapus",
     emptyTitle: "Belum ada yang cocok",
-    emptyText: "Coba kata kunci lain atau pilih kategori Semua.",
+    emptyText: "Coba kata kunci lain, hapus filter, atau pilih kategori Semua.",
   },
   detail: {
     chooseSchedule: "Pilih jadwal",
@@ -25,15 +43,30 @@ const id = {
 
 const en: typeof id = {
   list: {
-    title: "Facility catalog",
-    lead: "Choose the room or tool you need.",
-    searchPlaceholder: "Search by name or location",
+    title: "Catalog",
+    lead: (n) => `${n} tools and rooms you can borrow.`,
+    searchPlaceholder: "Search ESP32, discussion rooms, projectors…",
     searchLabel: "Search facilities",
-    filterLabel: "Category filter",
+    filterLabel: "Category",
+    filters: {
+      label: "Filters",
+      location: "Location",
+      capacity: "Capacity",
+      date: "Date",
+      anyLocation: "All locations",
+      anyCapacity: "Any capacity",
+      minPeople: (n) => `At least ${n} people`,
+      capacityNote: "Shows rooms only.",
+      dateNote: "Show what is available on this date.",
+      clearDate: "Clear date",
+    },
+    seeAll: (n) => `See all ${n}`,
+    groupMeta: (rooms, min, max) => `${rooms} ${rooms === 1 ? "room" : "rooms"} · ${range(min, max)} people`,
+    group: "Room type:",
     subcategory: "Category:",
     clearSubcategory: "Clear",
     emptyTitle: "No matches yet",
-    emptyText: "Try another keyword or pick the All category.",
+    emptyText: "Try another keyword, clear a filter, or pick the All category.",
   },
   detail: {
     chooseSchedule: "Choose a time",

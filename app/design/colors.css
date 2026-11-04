@@ -140,6 +140,9 @@
   --color-royal-press: #1a43b8;  /* Blue button hover */
   --color-royal-edge: #12358f;   /* Blue button bottom edge (footer socials) */
   --color-peach: #f7b98e;        /* Rank 3 badge */
+  --color-cornflower: #8fb0ff;   /* Multimedia catalog panel */
+  --color-apricot: #ffb36b;      /* Logistik catalog panel */
+  --color-red: #e0362c;          /* Illustration red: sold-out marker */
 
   /* Status pairs exactly from Figma (status/<color>-bg and -text) */
   --color-green-bg: #c8f7e6;  --color-green-fg: #0b5c43;
@@ -212,6 +215,25 @@
   --color-pair-gray-bg: light-dark(var(--color-gray-bg), #27333f);
   --color-pair-gray-fg: light-dark(var(--color-gray-fg), #cdd5df);
 
+  /* --- category chips: soft fill + ink. Separate from the status / level pairs on purpose.
+         Hues follow the Figma "1.4 Katalog" panels (hardware yellow, room mint, multimedia blue, logistics orange).
+         Contrast ink on soft: light 8.7 / 8.1 / 8.9 / 9.0, dark 10.0 / 9.4 / 9.4 / 9.2
+         (hardware / room / multimedia / logistics). --- */
+  --color-category-hardware-soft: light-dark(var(--color-sun-100), #3d3209);
+  --color-category-hardware-ink: light-dark(var(--color-sun-800), #ffe38a);
+  --color-category-room-soft: light-dark(var(--color-mint-100), #0c3836);
+  --color-category-room-ink: light-dark(var(--color-mint-800), var(--color-mint-200));
+  --color-category-multimedia-soft: light-dark(var(--color-periwinkle-100), #1b2c58);
+  --color-category-multimedia-ink: light-dark(var(--color-periwinkle-800), var(--color-periwinkle-200));
+  --color-category-logistics-soft: light-dark(var(--color-tangerine-100), #4d2410);
+  --color-category-logistics-ink: light-dark(var(--color-tangerine-800), var(--color-tangerine-200));
+  /* --- stock: "Habis" (sold out) in the daily loan calendar. Text on the gray closed/sold-out cell:
+         light 5.4:1, dark 6.4:1. The dot is a UI mark (≥3:1 on surface in both themes). --- */
+  --color-stock-out-fg: light-dark(#b42318, #ff9d94);
+  --color-stock-out: light-dark(var(--color-red), #ff6b5e);
+  /* count on the active (ink-filled) catalog tab: yellow on navy, dark yellow on the light dark-mode fill (6.7:1) */
+  --color-on-ink-highlight: light-dark(var(--color-sun-200), var(--color-sun-700));
+
   /* Hard shadow presets */
   --shadow-hard-royal: 6px 6px 0 0 var(--color-shadow-interactive);
   --shadow-hard-grape: 8px 8px 0 0 var(--color-shadow-accent);
@@ -265,11 +287,13 @@
   --color-level-letter-bg: var(--color-pair-orange-bg);
   --color-level-letter-fg: var(--color-pair-orange-fg);
 
-  /* --- category: facility groups (all purple in Figma) --- */
-  --color-category-hardware: var(--color-grape-700);
-  --color-category-room: var(--color-grape-700);
-  --color-category-multimedia: var(--color-grape-700);
-  --color-category-logistics: var(--color-grape-700);
+  /* --- category: one accent per facility category (Figma "1.4 Katalog" panels). Solid fill = illustration
+         panels, section markers, active filter chips; the same in both themes, navy text on it
+         (10.2 / 9.0 / 6.8 / 8.2:1). Soft / ink pairs live in the THEME section. Use through CATEGORY_STYLE. --- */
+  --color-category-hardware: var(--color-sun-200);
+  --color-category-room: var(--color-mint-300);
+  --color-category-multimedia: var(--color-cornflower);
+  --color-category-logistics: var(--color-apricot);
 
   /* --- rank: podium ranking --- */
   --color-rank-first: var(--color-sun-200);

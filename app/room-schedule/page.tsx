@@ -12,18 +12,21 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FACILITY_ILLUSTRATIONS, UI_ICONS } from "@/app/design/icon-map";
+import { CATEGORY_STYLE } from "@/app/design/category-style";
+import { UI_ICONS } from "@/app/design/icon-map";
+import CategoryBadge from "@/app/components/ui/category-badge";
+import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
-import { withFacilities, type Facility, type FacilityGroup } from "@/app/data/facilities";
+import { CATEGORY_ORDER, withFacilities, type Facility, type FacilityCategory } from "@/app/data/facilities";
 import { COMMON_TEXT } from "@/app/i18n/common";
-import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
+import { FACILITY_TEXT, localizeFacility, type FacilityView } from "@/app/i18n/facilities";
 import type { Locale } from "@/app/i18n/locale";
 import { ROOM_SCHEDULE_TEXT } from "@/app/i18n/room-schedule";
 import { useLocale } from "@/app/components/layout/language";
-import { MAX_MONTHS_AHEAD, SESSIONS, firstBookableDate, isSessionPast, sessionLabel, toBookingQuery } from "@/app/lib/booking";
+import { MAX_MONTHS_AHEAD, SESSIONS, firstBookableDate, isSessionPast, sessionLabel, toSelectionQuery, validateSelection } from "@/app/lib/booking";
+import { modeFor } from "@/app/components/catalog/booking/registry";
 import {
   addDays,
   addMonths,
@@ -41,24 +44,32 @@ import {
 /** number = units left (0 = sold out) */
 type SlotValue = number | "free" | "taken" | "pending";
 
-/** Row order + 4-session pattern, exactly as in Figma for Mon, 26 Oct 2026. */
+/** Row order + 4-session pattern for Mon, 26 Oct 2026 (Figma layout; [dummy] values, 1 unit per item). */
 const SCHEDULE_ROWS = withFacilities([
-  { slug: "kit-esp32", pattern: [6, 4, 0, 3] },
-  { slug: "ruang-diskusi-a", pattern: ["free", "taken", "free", "pending"] },
-  { slug: "ruang-sidang", pattern: ["free", "free", "taken", "free"] },
-  { slug: "pc-lab-rpl", pattern: ["taken", "taken", "taken", "taken"] },
-  { slug: "multimeter-digital", pattern: [2, 1, 2, 0] },
-  { slug: "converter-hdmi", pattern: [12, 10, 11, 12] },
-  { slug: "kamera-mirrorless", pattern: [1, 0, 1, 1] },
-] satisfies { slug: string; pattern: SlotValue[] }[]);
+  { id: "esp32", pattern: [1, 1, 0, 1] },
+  { id: "discussion-room-1", pattern: ["free", "taken", "free", "pending"] },
+  { id: "auditorium", pattern: ["free", "free", "taken", "free"] },
+  { id: "computer-lab-1", pattern: ["taken", "taken", "taken", "taken"] },
+  { id: "sensor-kit", pattern: [1, 1, 1, 0] },
+  { id: "hdmi-vga-adapter", pattern: [1, 1, 0, 1] },
+  { id: "camera", pattern: [1, 0, 1, 1] },
+  { id: "extra-chair", pattern: [1, 1, 1, 1] },
+] satisfies { id: string; pattern: SlotValue[] }[]);
 
 /** 26 Oct 2026 = the Figma pattern as-is */
+/** Link of an open cell: a one-day selection in the facility's booking mode, or its schedule page if the
+ *  availability data does not allow that day / session. */
+function requestHref(f: Facility, date: string, sessionId: number) {
+  const selection = modeFor(f).quickSelection(date, sessionId);
+  return validateSelection(selection, f) ? `/catalog/${f.id}/schedule` : `/catalog/${f.id}/request?${toSelectionQuery(selection)}`;
+}
+
 const PATTERN_REFERENCE_DATE = new Date(2026, 9, 26, 12);
 
 type CellKind = "open" | "full" | "pending" | "past";
 type Cell = { kind: CellKind; line1: string; line2: string };
 
-function computeCell(f: Facility, pattern: readonly SlotValue[], day: Date, session: number, now: Date, locale: Locale): Cell {
+function computeCell(f: FacilityView, pattern: readonly SlotValue[], day: Date, session: number, now: Date, locale: Locale): Cell {
   const t = ROOM_SCHEDULE_TEXT[locale].schedule.cell;
   if (isSessionPast(day, session, now)) return { kind: "past", line1: t.past, line2: "" };
   const shift = ((diffInDays(day, PATTERN_REFERENCE_DATE) % 4) + 4) % 4;
@@ -84,8 +95,8 @@ const LEGEND = [
   { key: "full", box: "bg-status-unavailable-bg text-status-unavailable-fg", dot: "bg-status-unavailable-fg" },
 ] as const;
 
-type Filter = "all" | FacilityGroup;
-const FILTERS: readonly Filter[] = ["all", "room", "hardware", "logistics"];
+type Filter = "all" | FacilityCategory;
+const FILTERS: readonly Filter[] = ["all", ...CATEGORY_ORDER];
 
 const TABLE_COLUMNS = "md:grid-cols-[210px_repeat(4,minmax(0,1fr))] lg:grid-cols-[280px_repeat(4,minmax(0,1fr))]";
 const CONTROL_BUTTON =
@@ -116,7 +127,7 @@ function RoomSchedule({ now }: { now: Date }) {
   const t = ROOM_SCHEDULE_TEXT[locale].schedule;
   const common = COMMON_TEXT[locale];
   const { workdaysShort, monthsShort } = dateNames(locale);
-  const filterLabel = (f: Filter) => (f === "all" ? common.all : common.groups[f]);
+  const filterLabel = (f: Filter) => (f === "all" ? common.all : common.categories[f]);
   const PrevIcon = UI_ICONS.back;
   const NextIcon = UI_ICONS.next;
 
@@ -138,7 +149,7 @@ function RoomSchedule({ now }: { now: Date }) {
 
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
   const selectedLabel = formatShortDate(selected, locale);
-  const rows = SCHEDULE_ROWS.filter((row) => filter === "all" || row.facility.group === filter);
+  const rows = SCHEDULE_ROWS.filter((row) => filter === "all" || row.facility.category === filter);
 
   return (
     <main className="min-h-screen bg-page px-5 pb-16 pt-[112px] sm:px-8 sm:pt-[128px] xl:px-[140px] xl:pb-20">
@@ -242,16 +253,16 @@ function RoomSchedule({ now }: { now: Date }) {
             const f = localizeFacility(original, locale);
             return (
               <div
-                key={f.slug}
+                key={f.id}
                 className={`grid grid-cols-2 items-center gap-2 border-t-2 border-line-warm/60 pt-3 first:border-t-0 first:pt-0 md:border-t-0 md:pt-0 ${TABLE_COLUMNS}`}
               >
                 <div className="col-span-2 flex items-center gap-3 p-[6px] md:col-span-1 md:h-[60px]">
-                  <span className="shrink-0 rounded-[12px] border-2 border-line-strong bg-sun-200 p-[5px]">
-                    <Image src={FACILITY_ILLUSTRATIONS[f.illustration]} alt="" width={38} height={38} className="size-[38px]" />
+                  <span className={`shrink-0 rounded-[12px] border-2 border-line-strong p-[5px] ${CATEGORY_STYLE[f.category].panel}`}>
+                    <FacilityIllustration id={f.illustration} size={38} className="size-[38px]" />
                   </span>
                   <div className="flex min-w-0 flex-col leading-[normal]">
                     <span className="text-[15px] font-extrabold text-ink">{f.name}</span>
-                    <span className="text-[12px] font-bold text-ink-muted">{common.groups[f.group]}</span>
+                    <CategoryBadge category={f.category} />
                   </div>
                 </div>
 
@@ -270,7 +281,7 @@ function RoomSchedule({ now }: { now: Date }) {
                   return cell.kind === "open" ? (
                     <Link
                       key={session}
-                      href={`/catalog/${f.slug}/request?${toBookingQuery({ date: toIsoDate(selected), session: i, quantity: 1 })}`}
+                      href={requestHref(original, toIsoDate(selected), i)}
                       aria-label={t.requestCell(f.name, label, description)}
                       className={`${cellClass} transition-transform hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-shadow)]`}
                     >

@@ -2,7 +2,8 @@
 //
 // Letter preview: the Word template is filled with the form data and rendered as-is with `docx-preview`.
 // Requires: docx-preview, docxtemplater, pizzip.
-// Data comes from: the draft in sessionStorage (written by the request form) + the ?hari=&sesi=&jumlah= query.
+// Data comes from: the draft in sessionStorage (written by the request form) + the selection query of the
+// facility's booking mode; the loan period in the letter comes from BOOKING_MODES[mode].letterPeriod.
 // Theme: the page around the letter follows light/dark mode, but the PAPER is always white with black text
 // (fixed white/black classes on the docx container; print forces the light theme in colors.css).
 // Language: the UI around the letter follows BOOKING_TEXT.letter; the letter CONTENT is always Indonesian
@@ -15,12 +16,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
-import { formatQuantity, type Facility } from "@/app/data/facilities";
+import { bookingMode, type Facility } from "@/app/data/facilities";
+import { modeOf } from "./booking/registry";
 import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
-import { localizeFacility } from "@/app/i18n/facilities";
+import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
+import { LetterMark } from "@/app/components/ui/facility-illustration";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
-import { SESSIONS, parseBookingQuery, toBookingQuery } from "@/app/lib/booking";
+import { parseSelectionQuery, toSelectionQuery } from "@/app/lib/booking";
 import {
   LETTER_DRAFT_STORAGE_KEY,
   downloadBlob,
@@ -51,8 +54,11 @@ export default function LetterPreview({ facility: f }: { facility: Facility }) {
   const { locale } = useLocale();
   const text = BOOKING_TEXT[locale];
   const t = text.letter;
-  const shown = localizeFacility(f, locale); // display name only; the letter uses `f` (Indonesian)
-  const booking = parseBookingQuery(useSearchParams(), f.maxQuantity);
+  const shown = localizeFacility(f, locale); // display name only; the letter itself is always Indonesian
+  const letterFacility = localizeFacility(f, "id");
+  const booking = parseSelectionQuery(useSearchParams(), f);
+  /** the selection as a stable string (effect dependency) */
+  const query = booking ? toSelectionQuery(booking) : null;
 
   const [data, setData] = useState<LetterData | null | undefined>(undefined); // undefined = not read yet
   const [status, setStatus] = useState<RenderStatus>("loading");
@@ -60,35 +66,32 @@ export default function LetterPreview({ facility: f }: { facility: Facility }) {
   const blobRef = useRef<Blob | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const formHref = `/catalog/${f.slug}/request${booking ? `?${toBookingQuery(booking)}` : ""}`;
-  const date = booking?.date;
-  const session = booking?.session;
-  const quantity = booking?.quantity;
+  const formHref = `/catalog/${f.id}/request${query ? `?${query}` : ""}`;
 
   // read the draft written by the form
   useEffect(() => {
-    if (date === undefined || session === undefined || quantity === undefined) {
+    const selection = query ? parseSelectionQuery(new URLSearchParams(query), f) : null;
+    if (!selection) {
       setData(null);
       return;
     }
     try {
       const draft = JSON.parse(sessionStorage.getItem(LETTER_DRAFT_STORAGE_KEY) ?? "null") as LetterDraft | null;
-      if (!draft || draft.slug !== f.slug) return setData(null);
+      if (!draft || draft.slug !== f.id) return setData(null);
       setData({
         code: draft.code,
         name: draft.name,
         studentId: draft.studentId,
         studyProgram: draft.studyProgram,
         purpose: draft.purpose,
-        facility: f.name,
-        quantity: formatQuantity(f, quantity),
-        date,
-        session: SESSIONS[session],
+        facility: letterFacility.name,
+        quantity: FACILITY_TEXT.id.quantity(selection.mode === "daily" ? selection.units : selection.participants, letterFacility.unit),
+        period: modeOf(selection).letterPeriod(selection),
       });
     } catch {
       setData(null);
     }
-  }, [f, date, session, quantity]);
+  }, [f, letterFacility.name, letterFacility.unit, query]);
 
   // fill the template → render it
   useEffect(() => {
@@ -141,13 +144,13 @@ export default function LetterPreview({ facility: f }: { facility: Facility }) {
         <Breadcrumb
           items={[
             { label: LAYOUT_TEXT[locale].pages.catalog, href: "/catalog" },
-            { label: shown.name, href: `/catalog/${f.slug}` },
+            { label: shown.name, href: `/catalog/${f.id}` },
             { label: text.crumbs.request, href: formHref },
             { label: text.crumbs.letter },
           ]}
         />
 
-        <Stepper active={4} />
+        <Stepper active={4} mode={bookingMode(f)} />
 
         {data === undefined ? null : data === null ? (
           <div className="mt-1 flex max-w-[560px] flex-col items-start gap-4 rounded-[20px] border-2 border-line-strong bg-surface p-6 shadow-[5px_5px_0_0_var(--color-shadow)]">
@@ -160,7 +163,10 @@ export default function LetterPreview({ facility: f }: { facility: Facility }) {
         ) : (
           <>
             <div className="flex flex-col gap-2">
-              <h1 className="font-display text-[34px] font-normal leading-none text-ink sm:text-[40px]">{t.title}</h1>
+              <div className="flex items-center gap-3">
+                <LetterMark />
+                <h1 className="font-display text-[34px] font-normal leading-none text-ink sm:text-[40px]">{t.title}</h1>
+              </div>
               <p className="text-[15px] text-ink-muted-on-page">{t.lead}</p>
               {t.officialNote && <p className="text-[14px] font-bold text-ink-muted-on-page">{t.officialNote}</p>}
             </div>

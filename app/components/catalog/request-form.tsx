@@ -1,9 +1,11 @@
 // app/components/catalog/request-form.tsx
 //
 // "Ajukan" page content (Figma node 1:1342 / 1:1437 / 1:1538).
-//  - Query from the Schedule step: ?hari=2026-11-02&sesi=0&jumlah=1 (validated; if broken → ask to pick a schedule again)
+//  - Query from the Schedule step, per booking mode (daily: ?ambil=&kembali=&jumlah=, session: ?hari=&sesi=&jumlah=);
+//    validated with parseSelectionQuery (if broken → ask to pick a schedule again)
 //  - "Surat izin dosen" (PDF) upload, plus a link to generate and preview the letter from the form data
-//  - Submitting is still simulated (no API). When valid → /catalog/[slug]/summary?kode=PJM-…&hari=…&sesi=…&jumlah=…
+//  - Submitting is still simulated (no API). When valid → /catalog/[slug]/summary?kode=PJM-… + the same selection query
+// Selection rows come from the booking mode (BOOKING_MODES in booking/registry.tsx).
 // Text: BOOKING_TEXT.request (app/i18n/booking-flow.ts). Errors are stored as keys, so they follow a language switch.
 
 "use client";
@@ -13,13 +15,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
-import type { Facility } from "@/app/data/facilities";
+import { bookingMode, type Facility } from "@/app/data/facilities";
+import { modeOf } from "./booking/registry";
+import CategoryBadge from "@/app/components/ui/category-badge";
+import { LetterMark } from "@/app/components/ui/facility-illustration";
 import { BOOKING_TEXT, type RequestErrorKey } from "@/app/i18n/booking-flow";
-import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
+import { localizeFacility } from "@/app/i18n/facilities";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
-import { REQUEST_STORAGE_KEY, generateRequestCode, parseBookingQuery, sessionLabel, toBookingQuery } from "@/app/lib/booking";
-import { formatShortDate } from "@/app/lib/date";
+import { REQUEST_STORAGE_KEY, generateRequestCode, parseSelectionQuery, toSelectionQuery } from "@/app/lib/booking";
 import { LETTER_DRAFT_STORAGE_KEY, type LetterDraft } from "@/app/lib/permission-letter";
 
 const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -88,7 +92,8 @@ export default function RequestForm({ facility: original }: { facility: Facility
   const text = BOOKING_TEXT[locale];
   const t = text.request;
   const router = useRouter();
-  const booking = parseBookingQuery(useSearchParams(), f.maxQuantity);
+  const mode = bookingMode(original);
+  const booking = parseSelectionQuery(useSearchParams(), original);
 
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
@@ -106,7 +111,7 @@ export default function RequestForm({ facility: original }: { facility: Facility
   useEffect(() => {
     try {
       const draft = JSON.parse(sessionStorage.getItem(LETTER_DRAFT_STORAGE_KEY) ?? "null") as LetterDraft | null;
-      if (draft && draft.slug === f.slug) {
+      if (draft && draft.slug === f.id) {
         setCode(draft.code);
         setName(draft.name);
         setStudentId(draft.studentId);
@@ -116,10 +121,10 @@ export default function RequestForm({ facility: original }: { facility: Facility
     } catch {
       /* ignore */
     }
-  }, [f.slug]);
+  }, [f.id]);
 
-  const showLetterUpload = LETTER_REQUIRED_FOR_ALL || f.permission === "letter";
-  const scheduleHref = `/catalog/${f.slug}/schedule`;
+  const showLetterUpload = LETTER_REQUIRED_FOR_ALL || f.level === "letter";
+  const scheduleHref = `/catalog/${f.id}/schedule`;
   const personalData = { name, studentId, studyProgram, purpose };
 
   function selectFile(file: File | undefined) {
@@ -149,7 +154,7 @@ export default function RequestForm({ facility: original }: { facility: Facility
     }
     setPreviewError(null);
     const draft: LetterDraft = {
-      slug: f.slug,
+      slug: f.id,
       code,
       name: name.trim(),
       studentId: studentId.trim(),
@@ -162,7 +167,7 @@ export default function RequestForm({ facility: original }: { facility: Facility
       setPreviewError("storageBlocked");
       return;
     }
-    router.push(`/catalog/${f.slug}/letter?${toBookingQuery(booking)}`);
+    router.push(`/catalog/${f.id}/letter?${toSelectionQuery(booking)}`);
   }
 
   function onSubmit(e: React.FormEvent) {
@@ -182,16 +187,14 @@ export default function RequestForm({ facility: original }: { facility: Facility
     } catch {
       /* ignore: the Summary shows "-" */
     }
-    router.push(`/catalog/${f.slug}/summary?${toBookingQuery(booking, code)}`);
+    router.push(`/catalog/${f.id}/summary?${toSelectionQuery(booking, code)}`);
   }
 
   const rows = text.summaryRows;
-  const summary: [string, string][] = booking
+  const summary: (readonly [string, string])[] = booking
     ? [
-        [rows.facility, f.name],
-        [rows.day, formatShortDate(booking.day, locale)],
-        [rows.session, sessionLabel(booking.session, locale)],
-        [rows.quantity, FACILITY_TEXT[locale].quantity(booking.quantity, f.unit)],
+        [text.modes[mode].nameRow, f.name],
+        ...modeOf(booking).rows(booking, f, locale),
         [rows.location, f.location],
       ]
     : [];
@@ -204,13 +207,13 @@ export default function RequestForm({ facility: original }: { facility: Facility
         <Breadcrumb
           items={[
             { label: LAYOUT_TEXT[locale].pages.catalog, href: "/catalog" },
-            { label: f.name, href: `/catalog/${f.slug}` },
-            { label: text.crumbs.schedule, href: scheduleHref },
+            { label: f.name, href: `/catalog/${f.id}` },
+            { label: text.modes[mode].step, href: scheduleHref },
             { label: text.crumbs.request },
           ]}
         />
 
-        <Stepper active={4} />
+        <Stepper active={4} mode={mode} />
 
         {!booking ? (
           /* query missing / broken (e.g. the link was opened directly) */
@@ -288,6 +291,7 @@ export default function RequestForm({ facility: original }: { facility: Facility
                     {t.fields.letter}
                   </span>
                   <div className={`flex flex-wrap items-center gap-3 rounded-[12px] border-2 bg-surface-warm p-4 ${borderFor(errors.letter)}`}>
+                    <LetterMark />
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -376,7 +380,10 @@ export default function RequestForm({ facility: original }: { facility: Facility
 
             {/* Request summary */}
             <aside className="flex w-full flex-col gap-[2px] rounded-[20px] border-2 border-line-strong bg-surface p-6 shadow-[4px_4px_0_0_var(--color-shadow)] sm:shadow-[5px_5px_0_0_var(--color-shadow)] lg:sticky lg:top-[124px] lg:w-[380px] lg:shrink-0">
-              <h2 className="font-display pb-1 text-[24px] font-normal leading-[normal] text-ink">{t.summaryTitle}</h2>
+              <div className="flex items-center justify-between gap-3 pb-1">
+                <h2 className="font-display text-[24px] font-normal leading-[normal] text-ink">{t.summaryTitle}</h2>
+                <CategoryBadge category={f.category} />
+              </div>
               {summary.map(([label, value]) => (
                 <div key={label} className="flex items-start justify-between gap-4 py-[9px] text-[14px] leading-[normal]">
                   <span className="text-ink-muted">{label}</span>

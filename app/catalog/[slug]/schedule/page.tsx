@@ -8,20 +8,22 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchedulePicker from "@/app/components/catalog/schedule-picker";
 import { FACILITIES, getFacility } from "@/app/data/facilities";
+import { localizeFacility } from "@/app/i18n/facilities";
 
 type Params = Promise<{ slug: string }>;
 
 export function generateStaticParams() {
-  return FACILITIES.map((f) => ({ slug: f.slug }));
+  return FACILITIES.map((f) => ({ slug: f.id }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-  const f = getFacility((await params).slug);
-  if (!f) return { title: "Pilih jadwal" };
+  const facility = getFacility((await params).slug);
+  if (!facility) return { title: "Pilih jadwal" };
+  const f = localizeFacility(facility, "id");
   return {
     title: `Pilih jadwal ${f.name}`,
     description: `Cek ketersediaan dan pilih jadwal peminjaman ${f.name} di PinjamTEDI.`,
-    alternates: { canonical: `/catalog/${f.slug}/schedule` },
+    alternates: { canonical: `/catalog/${f.id}/schedule` },
   };
 }
 

@@ -3,9 +3,9 @@
 // PinjamTEDI navbar (Figma node 1:3917, desktop 1440px).
 // - "Top" state: blends into the background (transparent).
 // - "Scrolled" state: floating surface-colored rounded box, shown after scrolling > 24px.
-// - >= xl : desktop layout as in Figma. Links are 16px apart (Figma 26px) so the settings gear fits;
-//           the "Pinjam sekarang" CTA shows from 1440px (below that the "Katalog" link covers it).
-// - <  xl : logo + settings + bell + hamburger; menu, search, and CTA move into a panel.
+// - >= xl : desktop layout as in Figma. Links are 16px apart (Figma 26px) so the settings gear fits.
+//           The old "Pinjam sekarang" CTA is replaced by an account (user) icon that goes to /login.
+// - <  xl : logo + settings + bell + account + hamburger; menu and search move into a panel.
 //           Below sm: 44px buttons and tighter padding; below 360px only the logo mark shows.
 //
 // Requires: colors.css, typography.css, fonts.ts.
@@ -19,11 +19,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 // LazyMotion + m: only loads the basic DOM animation features → smaller JS bundle than the full `motion`
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, Search, User, X } from "lucide-react";
 import NotificationPanel from "./notification-panel";
 import SettingsMenu from "./settings-menu";
 import { useText } from "./language";
 import { LAYOUT_TEXT, type PageKey } from "@/app/i18n/site-layout";
+import { ACCOUNT_TEXT } from "@/app/i18n/account";
 
 const NAV_LINKS: readonly { page: PageKey; href: string }[] = [
   { page: "catalog", href: "/catalog" },
@@ -35,8 +36,8 @@ const NAV_LINKS: readonly { page: PageKey; href: string }[] = [
 const SCROLL_THRESHOLD = 24;
 const DESKTOP_QUERY = "(min-width: 1280px)"; // Tailwind `xl`
 
-const CTA_BUTTON =
-  "h-12 items-center justify-center rounded-2xl border-2 border-b-[6px] border-line-strong bg-brand-primary text-[17px] font-extrabold leading-[1.2] text-on-primary transition-colors hover:bg-brand-primary-hover active:translate-y-[3px] active:border-b-[3px]";
+// TODO(backend): replace with the real login state. While false, the notification bell is hidden.
+const IS_LOGGED_IN = true;
 
 type SearchFieldProps = {
   query: string;
@@ -71,6 +72,7 @@ export default function Navbar() {
   const router = useRouter();
   const text = useText(LAYOUT_TEXT);
   const t = text.navbar;
+  const signInLabel = useText(ACCOUNT_TEXT).signIn;
   const menuId = useId();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -165,10 +167,17 @@ export default function Navbar() {
 
             <SettingsMenu />
 
-            <NotificationPanel />
+            {IS_LOGGED_IN && <NotificationPanel />}
 
-            <Link href="/catalog" className={`${CTA_BUTTON} hidden whitespace-nowrap px-[26px] min-[1440px]:inline-flex`}>
-              {t.cta}
+            {/* Account: goes to the login page */}
+            <Link
+              href="/login"
+              aria-label={signInLabel}
+              title={signInLabel}
+              aria-current={pathname === "/login" ? "page" : undefined}
+              className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border-2 border-line-strong bg-surface text-ink transition-colors hover:bg-brand-secondary/40 sm:size-12"
+            >
+              <User size={20} strokeWidth={2.25} aria-hidden />
             </Link>
 
             {/* Hamburger (mobile/tablet) */}
@@ -229,10 +238,6 @@ export default function Navbar() {
                     </li>
                   ))}
                 </ul>
-
-                <Link href="/catalog" className={`${CTA_BUTTON} mt-4 flex w-full`}>
-                  {t.cta}
-                </Link>
               </m.div>
             </>
           )}

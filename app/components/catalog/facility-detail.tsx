@@ -7,15 +7,15 @@
 
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { FACILITY_ILLUSTRATIONS } from "@/app/design/icon-map";
+import { CATEGORY_STYLE } from "@/app/design/category-style";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
+import CategoryBadge from "@/app/components/ui/category-badge";
+import FacilityIllustration, { LetterMark } from "@/app/components/ui/facility-illustration";
 import StatusBadge from "@/app/components/ui/status-badge";
-import { STATUS_STYLES, getFacility } from "@/app/data/facilities";
+import { STATUS_STYLES, bookingMode, getFacility } from "@/app/data/facilities";
 import { CATALOG_TEXT } from "@/app/i18n/catalog";
-import { COMMON_TEXT } from "@/app/i18n/common";
 import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
@@ -30,31 +30,26 @@ export default function FacilityDetail({ slug }: { slug: string }) {
   if (!original) return null;
   const f = localizeFacility(original, locale);
   const t = CATALOG_TEXT[locale].detail;
-  const note = FACILITY_TEXT[locale].permissionNotes[f.permission];
+  const note = FACILITY_TEXT[locale].permissionNotes[f.level];
 
   return (
     <main className="min-h-screen bg-page px-5 pb-14 pt-[112px] sm:px-8 sm:pb-16 sm:pt-[132px] xl:px-[140px] xl:pb-20">
       <div className="mx-auto flex max-w-[1160px] flex-col gap-5">
         <Breadcrumb items={[{ label: LAYOUT_TEXT[locale].pages.catalog, href: "/catalog" }, { label: f.name }]} />
 
-        <Stepper active={2} />
+        <Stepper active={2} mode={bookingMode(original)} />
 
         <div className="mt-1 flex flex-col gap-8 lg:flex-row xl:gap-11">
           {/* Illustration panel */}
-          <div className="flex h-[260px] w-full shrink-0 items-center justify-center rounded-[22px] border-2 border-line-strong bg-sun-200 p-8 shadow-[5px_5px_0_0_var(--color-shadow-accent)] sm:h-[340px] sm:shadow-[7px_7px_0_0_var(--color-shadow-accent)] lg:h-[400px] lg:w-[420px] xl:w-[520px]">
-            <Image
-              src={FACILITY_ILLUSTRATIONS[f.illustration]}
-              alt={f.name}
-              width={260}
-              height={260}
-              preload
-              className="size-[180px] sm:size-[240px] xl:size-[260px]"
-            />
+          <div
+            className={`flex h-[260px] w-full shrink-0 items-center justify-center rounded-[22px] border-2 border-line-strong p-8 shadow-[5px_5px_0_0_var(--color-shadow-accent)] sm:h-[340px] sm:shadow-[7px_7px_0_0_var(--color-shadow-accent)] lg:h-[400px] lg:w-[420px] xl:w-[520px] ${CATEGORY_STYLE[f.category].panel}`}
+          >
+            <FacilityIllustration id={f.illustration} size={260} preload className="size-[180px] sm:size-[240px] xl:size-[260px]" />
           </div>
 
           {/* Info */}
           <div className="flex min-w-0 flex-1 flex-col items-start gap-[14px]">
-            <span className="text-[13px] font-extrabold uppercase leading-none text-ink-accent">{COMMON_TEXT[locale].groups[f.group]}</span>
+            <CategoryBadge category={f.category} />
             <h1 className="font-display text-[40px] font-normal leading-none text-ink sm:text-[48px] xl:text-[54px]">{f.name}</h1>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -62,7 +57,7 @@ export default function FacilityDetail({ slug }: { slug: string }) {
               <span className="text-[14px] font-bold text-ink-muted-on-page">{f.availability}</span>
             </div>
 
-            <p className="text-[16px] font-normal leading-[26px] text-ink-body sm:text-[17px]">{f.longDescription ?? f.description}</p>
+            <p className="text-[16px] font-normal leading-[26px] text-ink-body sm:text-[17px]">{f.description}</p>
 
             {/* Specs */}
             <dl className="w-full overflow-hidden rounded-2xl border-2 border-line-strong bg-surface text-[14px]">
@@ -74,17 +69,20 @@ export default function FacilityDetail({ slug }: { slug: string }) {
               ))}
             </dl>
 
-            {/* Permission note */}
+            {/* Permission note ("letter" level: marked with the signed-letter illustration) */}
             <div
-              className={`flex w-full flex-col gap-1 rounded-2xl border-2 border-line-strong p-[14px] text-[14px] sm:flex-row sm:items-center sm:gap-[10px] ${STATUS_STYLES[f.permission].box}`}
+              className={`flex w-full items-center gap-3 rounded-2xl border-2 border-line-strong p-[14px] text-[14px] ${STATUS_STYLES[f.level].box}`}
             >
-              <span className="shrink-0 font-extrabold text-ink">{note.title}</span>
-              <span className="text-ink-body">{note.text}</span>
+              {f.level === "letter" && <LetterMark />}
+              <p className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-[10px]">
+                <span className="shrink-0 font-extrabold text-ink">{note.title}</span>
+                <span className="text-ink-body">{note.text}</span>
+              </p>
             </div>
 
             {/* Actions */}
             <div className="flex flex-wrap gap-[14px]">
-              <Link href={`/catalog/${f.slug}/schedule`} className={`${BUTTON} bg-brand-primary text-on-primary`}>
+              <Link href={`/catalog/${f.id}/schedule`} className={`${BUTTON} bg-brand-primary text-on-primary`}>
                 {t.chooseSchedule}
               </Link>
               <Link href="/catalog" className={`${BUTTON} bg-surface text-ink`}>

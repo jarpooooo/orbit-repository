@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Ilustrasi room">
+<path id="Vector" d="M81.6667 16.6667H18.3333C14.6514 16.6667 11.6667 19.6514 11.6667 23.3333V68.3333C11.6667 72.0152 14.6514 75 18.3333 75H81.6667C85.3486 75 88.3333 72.0152 88.3333 68.3333V23.3333C88.3333 19.6514 85.3486 16.6667 81.6667 16.6667Z" fill="white" stroke-width="3" stroke="#0D2A4B"/>
+<path id="Vector_2" d="M76.6667 25H23.3333C21.4924 25 20 26.4924 20 28.3333V43.3333C20 45.1743 21.4924 46.6667 23.3333 46.6667H76.6667C78.5076 46.6667 80 45.1743 80 43.3333V28.3333C80 26.4924 78.5076 25 76.6667 25Z" fill="#6C98FF" stroke-width="3" stroke="#0D2A4B"/>
+<path id="Vector_3" d="M71.6667 56.6667H28.3333C26.4924 56.6667 25 58.1591 25 60V63.3333C25 65.1743 26.4924 66.6667 28.3333 66.6667H71.6667C73.5076 66.6667 75 65.1743 75 63.3333V60C75 58.1591 73.5076 56.6667 71.6667 56.6667Z" fill="#5B3BB5" stroke-width="3" stroke="#0D2A4B"/>
+<g id="Vector_4">
+<path d="M23.3333 75V88.3333ZM76.6667 75V88.3333Z" fill="black"/>
+<path d="M23.3333 75V88.3333M76.6667 75V88.3333" stroke-width="4" stroke-linecap="round" stroke="#0D2A4B"/>
+</g>
+</g>
+</svg>

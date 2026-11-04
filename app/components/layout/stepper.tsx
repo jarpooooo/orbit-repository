@@ -4,20 +4,25 @@
 // Used on 4 pages: Detail (active=2), Schedule (3), Request (4), Summary (5).
 // Completed = mint dot "•", active = yellow pill + navy number, the rest = surface + gray number.
 // The navy number chip sits inside the yellow pill, so it stays navy in both themes.
-// Step labels: LAYOUT_TEXT.stepper (app/i18n/site-layout.ts).
+// Step labels: LAYOUT_TEXT.stepper (app/i18n/site-layout.ts); step 3 follows the booking mode
+// (BOOKING_TEXT.modes: "Tanggal" for daily loans, "Jadwal" for room sessions) when `mode` is given.
 
 "use client";
 
+import type { BookingMode } from "@/app/data/facilities";
+import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
-import { useText } from "./language";
+import { useLocale } from "./language";
 
 export type StepNumber = 1 | 2 | 3 | 4 | 5;
 
-export default function Stepper({ active }: { active: StepNumber }) {
-  const t = useText(LAYOUT_TEXT).stepper;
+export default function Stepper({ active, mode }: { active: StepNumber; mode?: BookingMode }) {
+  const { locale } = useLocale();
+  const t = LAYOUT_TEXT[locale].stepper;
+  const steps = t.steps.map((label, i) => (i === 2 && mode ? BOOKING_TEXT[locale].modes[mode].step : label));
   return (
     <ol aria-label={t.label} className="flex flex-wrap gap-2">
-      {t.steps.map((label, i) => {
+      {steps.map((label, i) => {
         const step = i + 1;
         const done = step < active;
         const current = step === active;

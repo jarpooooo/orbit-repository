@@ -31,12 +31,10 @@ export type LetterDraft = {
 
 export type LetterData = Omit<LetterDraft, "slug"> & {
   facility: string;
-  /** e.g. "1 unit" */
+  /** e.g. "1 unit", "120 orang" */
   quantity: string;
-  /** yyyy-mm-dd */
-  date: string;
-  /** e.g. "10.00 – 12.00" */
-  session: string;
+  /** loan period: daily = pick-up day 08.00 → return day 16.00; session = the day, session start → end */
+  period: { from: string; fromTime: string; until: string; untilTime: string };
 };
 
 export const letterFileName = (code: string) => `Surat-Izin-${code}`;
@@ -55,8 +53,8 @@ export async function fillPermissionLetter(data: LetterData): Promise<Blob> {
     nullGetter: () => "",
   });
 
-  const borrowDate = formatLongDate(parseIsoDate(data.date) ?? new Date());
-  const [start, end] = data.session.split("–").map((s) => s.trim());
+  const { from, fromTime, until, untilTime } = data.period;
+  const longDate = (iso: string) => formatLongDate(parseIsoDate(iso) ?? new Date());
   doc.render({
     kode: data.code,
     tanggal_surat: formatLongDate(new Date(), false),
@@ -65,8 +63,8 @@ export async function fillPermissionLetter(data: LetterData): Promise<Blob> {
     prodi: data.studyProgram,
     fasilitas: data.facility,
     jumlah: data.quantity,
-    tanggal_pinjam: `${borrowDate}, pukul ${start ?? data.session} WIB`,
-    tanggal_kembali: `${borrowDate}, pukul ${end ?? data.session} WIB`,
+    tanggal_pinjam: `${longDate(from)}, pukul ${fromTime} WIB`,
+    tanggal_kembali: `${longDate(until)}, pukul ${untilTime} WIB`,
     keterangan: data.purpose,
     penanggung: FACILITY_SUPERVISOR,
   });

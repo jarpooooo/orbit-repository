@@ -16,6 +16,8 @@ type Props = {
   onEnable?: () => void | Promise<void>;
 };
 
+
+
 export default function NotificationCta({ onEnable }: Props) {
   const t = useText(HOME_TEXT).notificationCta;
   const [state, setState] = useState<NotificationCtaState>("idle");
