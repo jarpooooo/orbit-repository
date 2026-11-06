@@ -21,9 +21,8 @@ import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import StatusBadge from "@/app/components/ui/status-badge";
 import FilterMenu, { FilterOption } from "./filter-menu";
 import {
-  CATEGORY_COUNTS,
   CATEGORY_ORDER,
-  FACILITIES,
+  FACILITIES as SEED_FACILITIES,
   SUBCATEGORIES,
   facilityLocation,
   isRoomGroup,
@@ -42,6 +41,7 @@ import type { Locale } from "@/app/i18n/locale";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
 import { dateNames, parseIsoDate } from "@/app/lib/date";
+import { useFacilities } from "@/app/lib/facility-store";
 
 type Tab = "all" | FacilityCategory;
 const TABS: readonly Tab[] = ["all", ...CATEGORY_ORDER];
@@ -58,7 +58,7 @@ const CATEGORY_PARAMS: Record<FacilityCategory, string> = {
 };
 
 /** Locations that have at least one facility, in data order. */
-const LOCATIONS: readonly LocationKey[] = [...new Set(FACILITIES.map(facilityLocation))];
+const LOCATIONS: readonly LocationKey[] = [...new Set(SEED_FACILITIES.map(facilityLocation))];
 /** "Kapasitas" choices: minimum seats (rooms only). */
 const CAPACITY_OPTIONS = [10, 30, 100] as const;
 
@@ -84,6 +84,8 @@ type Entry = {
   description: string;
   status: AvailabilityStatus;
   meta: string;
+  /** what the permission level asks for (FACILITY_TEXT.requirementsShort); level name first while on loan */
+  requirements: string;
 } & ({ href: string } | { group: RoomGroup });
 
 /* --------------------------------- URL ---------------------------------- */
@@ -130,6 +132,9 @@ const searchText = (shown: FacilityView, indonesian: FacilityView, categoryLabel
 /** Facilities → cards. Unless one room type is open, rooms of the same type share one card. */
 function toEntries(views: readonly FacilityView[], collapseRooms: boolean, locale: Locale): Entry[] {
   const text = FACILITY_TEXT[locale];
+  // the badge shows the level unless the facility is on loan; then the line names it
+  const requirementsOf = (level: FacilityView["level"], status: AvailabilityStatus) =>
+    status === "borrowed" ? `${text.statuses[level]} · ${text.requirementsShort[level]}` : text.requirementsShort[level];
   const t = CATALOG_TEXT[locale].list;
   const entries: Entry[] = [];
   const grouped = new Map<RoomGroup, FacilityView[]>();
@@ -141,11 +146,11 @@ function toEntries(views: readonly FacilityView[], collapseRooms: boolean, local
         continue;
       }
       grouped.set(f.group, [f]);
-      entries.push({ key: `group:${f.group}`, category: f.category, illustration: f.illustration, name: "", description: "", status: f.level, meta: "", group: f.group });
+      entries.push({ key: `group:${f.group}`, category: f.category, illustration: f.illustration, name: "", description: "", status: f.level, meta: "", requirements: "", group: f.group });
       continue;
     }
     const { id, category, illustration, name, description, status, meta } = f;
-    entries.push({ key: id, category, illustration, name, description, status, meta, href: `/catalog/${id}` });
+    entries.push({ key: id, category, illustration, name, description, status, meta, requirements: requirementsOf(f.level, status), href: `/catalog/${id}` });
   }
   // fill in the room-type cards now that every room is counted
   return entries.map((e) => {
@@ -153,11 +158,13 @@ function toEntries(views: readonly FacilityView[], collapseRooms: boolean, local
     const rooms = grouped.get(e.group)!;
     const seats = rooms.map((r) => r.maxQuantity);
     const copy = text.roomGroups[e.group];
+    const status: AvailabilityStatus = rooms.every((r) => r.status === "borrowed") ? "borrowed" : rooms[0].level;
     return {
       ...e,
       name: copy.name,
       description: copy.description,
-      status: rooms.every((r) => r.status === "borrowed") ? "borrowed" : rooms[0].level,
+      status,
+      requirements: requirementsOf(rooms[0].level, status),
       meta: t.groupMeta(rooms.length, Math.min(...seats), Math.max(...seats)),
     };
   });
@@ -198,6 +205,7 @@ function CatalogCard({ entry, categoryLabel, onOpenGroup }: { entry: Entry; cate
           <StatusBadge status={entry.status} />
           <span className="text-[13px] font-bold leading-[normal] text-ink-muted">{entry.meta}</span>
         </span>
+        <span className="text-[12px] font-bold leading-[normal] text-ink-body">{entry.requirements}</span>
       </span>
     </>
   );
@@ -275,8 +283,13 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
   const term = filters.query.trim().toLowerCase();
   const narrowed = filters.tab !== "all" || !!term || !!filters.subcategory || !!filters.group || !!filters.location || !!filters.capacity || !!filters.date;
 
+  const facilities = useFacilities();
+  const counts = useMemo(() => {
+    const byCategory = Object.fromEntries(CATEGORY_ORDER.map((c) => [c, facilities.filter((f) => f.category === c).length]));
+    return { all: facilities.length, ...byCategory } as Record<FacilityCategory | "all", number>;
+  }, [facilities]);
   const sections = useMemo(() => {
-    const views = FACILITIES.filter((f) => passesFilters(f, filters))
+    const views = facilities.filter((f) => passesFilters(f, filters))
       .map((f) => ({ shown: localizeFacility(f, locale), indonesian: localizeFacility(f, "id") }))
       .filter(({ shown, indonesian }) => !term || searchText(shown, indonesian, common.categories[shown.category]).includes(term))
       .map(({ shown }) => shown);
@@ -284,7 +297,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
     return CATEGORY_ORDER.map((category) => ({ category, entries: entries.filter((e) => e.category === category) })).filter(
       (s) => s.entries.length > 0,
     );
-  }, [filters, term, locale, common]);
+  }, [facilities, filters, term, locale, common]);
 
   // "12 Nov" on the Tanggal button
   const chosenDay = filters.date ? parseIsoDate(filters.date) : null;
@@ -298,7 +311,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
         {/* Title */}
         <div className="mt-[18px] flex flex-col gap-[6px]">
           <h1 className="font-display text-[40px] font-normal leading-[normal] text-ink sm:text-[48px] xl:text-[52px]">{t.title}</h1>
-          <p className="text-[16px] leading-[normal] text-ink-body">{t.lead(FACILITIES.length)}</p>
+          <p className="text-[16px] leading-[normal] text-ink-body">{t.lead(facilities.length)}</p>
         </div>
 
         {/* Search + filters */}
@@ -360,7 +373,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
                   type="date"
                   value={filters.date ?? ""}
                   onChange={(e) => update({ date: e.target.value && parseIsoDate(e.target.value) ? e.target.value : null })}
-                  className="h-11 rounded-[10px] border-2 border-line-strong bg-surface-field px-3 text-[14px] font-medium text-ink [color-scheme:inherit]"
+                  className="h-11 rounded-[10px] border-2 border-line-strong bg-surface-field px-3 text-[14px] font-normal text-ink [color-scheme:inherit]"
                 />
               </label>
               {filters.date && (
@@ -388,7 +401,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
                 ].join(" ")}
               >
                 <span className="text-[14px] font-extrabold">{tabLabel(tab)}</span>
-                <span className={`text-[12px] font-bold ${active ? "text-on-ink-highlight" : "text-ink-muted"}`}>{CATEGORY_COUNTS[tab]}</span>
+                <span className={`text-[12px] font-bold ${active ? "text-on-ink-highlight" : "text-ink-muted"}`}>{counts[tab]}</span>
               </button>
             );
           })}
@@ -433,7 +446,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
                         }}
                         className="flex shrink-0 items-center gap-[6px] text-[14px] font-extrabold leading-[normal] text-link hover:underline"
                       >
-                        {t.seeAll(CATEGORY_COUNTS[category])}
+                        {t.seeAll(counts[category])}
                         <ArrowIcon size={16} strokeWidth={2.5} aria-hidden />
                       </button>
                     )}

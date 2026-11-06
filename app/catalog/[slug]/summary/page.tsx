@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import RequestSummary from "@/app/components/catalog/request-summary";
 import { FACILITIES, getFacility } from "@/app/data/facilities";
 import { localizeFacility } from "@/app/i18n/facilities";
+import { RequireAuth } from "@/app/components/layout/auth-gate";
 
 type Params = Promise<{ slug: string }>;
 
@@ -40,5 +41,10 @@ export default function SummaryPage({ params }: { params: Params }) {
 async function SummaryContent({ params }: { params: Params }) {
   const f = getFacility((await params).slug);
   if (!f) notFound();
-  return <RequestSummary facility={f} />;
+  // signed-in users only: the request is saved under the account (catalog + detail stay public)
+  return (
+    <RequireAuth>
+      <RequestSummary facility={f} />
+    </RequireAuth>
+  );
 }

@@ -274,7 +274,7 @@ function RoomSchedule({ now }: { now: Date }) {
                     <>
                       <span className="text-[11px] font-bold opacity-75 md:hidden">{label}</span>
                       <span className="text-[15px] font-extrabold">{cell.line1}</span>
-                      <span className="min-h-[14px] text-[11px] font-medium">{cell.line2 || " "}</span>
+                      <span className="min-h-[14px] text-[11px] font-normal">{cell.line2 || " "}</span>
                     </>
                   );
                   const cellClass = `flex min-w-0 flex-col items-center rounded-[12px] border-2 py-[10px] text-center leading-[normal] ${CELL_CLASSES[cell.kind]}`;

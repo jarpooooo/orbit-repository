@@ -93,9 +93,9 @@ const id = {
       pickup: { title: "Ambil", description: "Tunjukkan kode QR dan KTM ke pengelola saat mengambil." },
     } as Record<HomeStepKey, { title: string; description: string }>,
     levels: {
-      direct: "Barang kecil seperti converter dan clicker. Isi form, langsung ambil.",
-      verification: "Kit praktikum dan ruang diskusi. Dicek dulu oleh pengelola.",
-      letter: "Kamera, alat ukur mahal, ruang acara. Butuh tanda tangan dosen atau pembina.",
+      direct: "Barang kecil seperti converter dan clicker. Isi form singkat, ambil pakai KTM.",
+      verification: "Kit praktikum dan ruang diskusi. Isi form, titip KTM, dicek laboran/TU.",
+      letter: "Kamera, alat mahal, ruang acara. Isi form, titip KTM, lampirkan surat, di-acc penanggung jawab.",
     },
   },
 
@@ -190,9 +190,9 @@ const en: typeof id = {
       pickup: { title: "Pick up", description: "Show your QR code and student ID to the staff when you collect it." },
     },
     levels: {
-      direct: "Small items like converters and clickers. Fill in the form and pick it up.",
-      verification: "Lab kits and discussion rooms. Checked by the staff first.",
-      letter: "Cameras, costly measuring tools, event rooms. Needs a lecturer's or advisor's signature.",
+      direct: "Small items like converters and clickers. Short form, pick up with your student ID.",
+      verification: "Lab kits and discussion rooms. Form, leave your student ID, checked by lab staff.",
+      letter: "Cameras, costly tools, event rooms. Form, student ID, signed letter, approval by the person in charge.",
     },
   },
 

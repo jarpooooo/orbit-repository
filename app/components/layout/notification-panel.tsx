@@ -99,7 +99,7 @@ export default function NotificationPanel() {
             </button>
           </div>
 
-          <ul className="max-h-[60dvh] overflow-y-auto">
+          <ul data-lenis-prevent className="max-h-[60dvh] overflow-y-auto">
             {notifications.map((n) => (
               <li key={n.id}>
                 <Link

@@ -5,8 +5,10 @@
 //   getDailyAvailability(id, date)   → "daily" facilities: closed day, or units left that day
 //   getSessionAvailability(id, date) → "session" facilities: free / full per session
 // Swap the bodies for API calls later; the components only call these two functions.
+// Stock (units) and loans (borrowedUntil) come from the live Firestore facility (app/lib/facility-store.ts).
 
-import { facilitySessions, getFacility } from "./facilities";
+import { facilitySessions } from "./facilities";
+import { currentFacility as getFacility } from "@/app/lib/facility-store";
 
 /** "ok" = every unit free, "low" = some taken, "out" = none left, "closed" = Sunday / holiday. */
 export type StockLevel = "ok" | "low" | "out" | "closed";

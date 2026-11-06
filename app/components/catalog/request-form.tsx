@@ -3,8 +3,14 @@
 // "Ajukan" page content (Figma node 1:1342 / 1:1437 / 1:1538).
 //  - Query from the Schedule step, per booking mode (daily: ?ambil=&kembali=&jumlah=, session: ?hari=&sesi=&jumlah=);
 //    validated with parseSelectionQuery (if broken → ask to pick a schedule again)
-//  - "Surat izin dosen" (PDF) upload, plus a link to generate and preview the letter from the form data
-//  - Submitting is still simulated (no API). When valid → /catalog/[slug]/summary?kode=PJM-… + the same selection query
+//  - Fields follow the permission level (LEVEL_REQUIREMENTS, project document "Level"):
+//      direct       → short form (name, student ID, study program)
+//      verification → + purpose + "I leave my student ID with the manager" checkbox
+//      letter       → + purpose + student ID checkbox + signed letter (PDF upload, generated from the form data)
+//    The level's checklist (<LevelRequirements />) sits at the top of the form.
+//  - Submitting saves requests/{code} in Firestore (app/lib/requests.ts) with the initial status of the facility's level,
+//    then → /catalog/[slug]/summary?kode=PJM-… + the same selection query. Name / NIM / study program are prefilled
+//    from the signed-in student's profile (users/{uid}).
 // Selection rows come from the booking mode (BOOKING_MODES in booking/registry.tsx).
 // Text: BOOKING_TEXT.request (app/i18n/booking-flow.ts). Errors are stored as keys, so they follow a language switch.
 
@@ -15,7 +21,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
-import { bookingMode, type Facility } from "@/app/data/facilities";
+import { bookingMode, levelNeeds, type Facility } from "@/app/data/facilities";
+import LevelRequirements from "./level-requirements";
 import { modeOf } from "./booking/registry";
 import CategoryBadge from "@/app/components/ui/category-badge";
 import { LetterMark } from "@/app/components/ui/facility-illustration";
@@ -25,15 +32,16 @@ import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
 import { REQUEST_STORAGE_KEY, generateRequestCode, parseSelectionQuery, toSelectionQuery } from "@/app/lib/booking";
 import { LETTER_DRAFT_STORAGE_KEY, type LetterDraft } from "@/app/lib/permission-letter";
+import { useLiveFacility } from "@/app/lib/facility-store";
+import { useSession } from "@/app/lib/auth";
+import { loadProfile, submitRequest } from "@/app/lib/requests";
 
 const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MB
-/** true: the upload box shows for every facility and the PDF is required. false: only for "letter" facilities, and optional. */
-const LETTER_REQUIRED_FOR_ALL = true;
 
-type Field = "name" | "studentId" | "studyProgram" | "purpose" | "letter" | "agreement";
+type Field = "name" | "studentId" | "studyProgram" | "purpose" | "letter" | "studentIdDeposit" | "agreement";
 type Errors = Partial<Record<Field, RequestErrorKey>>;
 /** Order used to focus the first invalid field. */
-const FIELD_ORDER: readonly Field[] = ["name", "studentId", "studyProgram", "purpose", "letter", "agreement"];
+const FIELD_ORDER: readonly Field[] = ["name", "studentId", "studyProgram", "purpose", "letter", "studentIdDeposit", "agreement"];
 const fieldId = (field: Field) => `request-${field}`;
 
 const INPUT =
@@ -47,13 +55,13 @@ const formatFileSize = (bytes: number) =>
 
 type PersonalData = { name: string; studentId: string; studyProgram: string; purpose: string };
 
-/** Checks the fields the letter needs. Submitting additionally needs the PDF and the agreement. */
-function validatePersonalData(data: PersonalData): Errors {
+/** Checks the typed fields (purpose only when the level asks for it). Submitting also checks the level's extras. */
+function validatePersonalData(data: PersonalData, needsPurpose: boolean): Errors {
   const errors: Errors = {};
   if (data.name.trim().length < 3) errors.name = "nameRequired";
   if (!/^\d{6,15}$/.test(data.studentId.trim())) errors.studentId = "studentIdFormat";
   if (data.studyProgram.trim().length < 3) errors.studyProgram = "studyProgramRequired";
-  if (data.purpose.trim().length < 5) errors.purpose = "purposeRequired";
+  if (needsPurpose && data.purpose.trim().length < 5) errors.purpose = "purposeRequired";
   return errors;
 }
 
@@ -79,6 +87,51 @@ function FormField({ field, label, error, children }: { field: Field; label: str
   );
 }
 
+/** Checkbox with the custom box (agreement, KTM deposit); the error sits under it. */
+function CheckField({
+  field,
+  checked,
+  onChange,
+  label,
+  error,
+}: {
+  field: Field;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  error?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-[6px]">
+      <label className="flex cursor-pointer items-start gap-3">
+        <input
+          id={fieldId(field)}
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${fieldId(field)}-error` : undefined}
+          className="peer sr-only"
+        />
+        <span
+          aria-hidden
+          className="mt-[1px] flex size-[22px] shrink-0 items-center justify-center rounded-[6px] border-2 border-line-strong bg-surface peer-checked:bg-status-available peer-focus-visible:ring-[3px] peer-focus-visible:ring-periwinkle-400 [&>svg]:opacity-0 peer-checked:[&>svg]:opacity-100"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2.5 7.5l3 3 6-7" stroke="var(--color-on-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span className="text-[14px] leading-[22px] text-ink-body">{label}</span>
+      </label>
+      {error && (
+        <p id={`${fieldId(field)}-error`} role="alert" className="text-[12px] font-bold text-status-attention-fg">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** aria props for an input whose error message is rendered by <FormField>. */
 const errorProps = (field: Field, error?: string) => ({
   id: fieldId(field),
@@ -86,7 +139,8 @@ const errorProps = (field: Field, error?: string) => ({
   "aria-describedby": error ? `${fieldId(field)}-error` : undefined,
 });
 
-export default function RequestForm({ facility: original }: { facility: Facility }) {
+export default function RequestForm({ facility: seed }: { facility: Facility }) {
+  const original = useLiveFacility(seed);
   const { locale } = useLocale();
   const f = localizeFacility(original, locale);
   const text = BOOKING_TEXT[locale];
@@ -101,11 +155,30 @@ export default function RequestForm({ facility: original }: { facility: Facility
   const [purpose, setPurpose] = useState("");
   const [letterFile, setLetterFile] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
+  const [depositAgreed, setDepositAgreed] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [previewError, setPreviewError] = useState<RequestErrorKey | null>(null);
   const [code, setCode] = useState(generateRequestCode); // one code for both the letter and the Summary
+  const [submitError, setSubmitError] = useState<RequestErrorKey | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const session = useSession();
+  const uid = session?.uid;
+
+  // prefill from the student's profile; fields already filled (draft, typing) are kept
+  useEffect(() => {
+    if (!uid) return;
+    let alive = true;
+    void loadProfile(uid).then((p) => {
+      if (!alive) return;
+      setName((v) => v || p.name || "");
+      setStudentId((v) => v || p.studentId || "");
+      setStudyProgram((v) => v || p.studyProgram || "");
+    });
+    return () => {
+      alive = false;
+    };
+  }, [uid]);
 
   // coming back from the preview page → refill the fields
   useEffect(() => {
@@ -123,7 +196,9 @@ export default function RequestForm({ facility: original }: { facility: Facility
     }
   }, [f.id]);
 
-  const showLetterUpload = LETTER_REQUIRED_FOR_ALL || f.level === "letter";
+  const needsPurpose = levelNeeds(original.level, "form");
+  const needsLetter = levelNeeds(original.level, "signedLetter");
+  const needsDeposit = levelNeeds(original.level, "depositStudentId");
   const scheduleHref = `/catalog/${f.id}/schedule`;
   const personalData = { name, studentId, studyProgram, purpose };
 
@@ -140,7 +215,7 @@ export default function RequestForm({ facility: original }: { facility: Facility
   function openLetterPreview() {
     if (!booking) return;
     // the letter needs personal data + purpose; the agreement and the PDF are not needed
-    const personalErrors = validatePersonalData(personalData);
+    const personalErrors = validatePersonalData(personalData, true); // the letter always states the purpose
     setErrors((e) => ({
       ...e,
       name: personalErrors.name,
@@ -170,24 +245,44 @@ export default function RequestForm({ facility: original }: { facility: Facility
     router.push(`/catalog/${f.id}/letter?${toSelectionQuery(booking)}`);
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!booking || submitting) return;
-    const nextErrors = validatePersonalData(personalData);
-    if (LETTER_REQUIRED_FOR_ALL && !letterFile) nextErrors.letter = "letterRequired";
+    setSubmitError(null);
+    const nextErrors = validatePersonalData(personalData, needsPurpose);
+    if (needsLetter && !letterFile) nextErrors.letter = "letterRequired";
+    if (needsDeposit && !depositAgreed) nextErrors.studentIdDeposit = "studentIdDepositRequired";
     if (!agreed) nextErrors.agreement = "agreementRequired";
     setErrors(nextErrors);
     if (focusFirstError(nextErrors)) return;
 
     setSubmitting(true);
-    // SIMULATION. Replace with a POST to the API; the real code comes from the server.
-    // Name & student ID are kept for the Summary page (this tab only; replace with API data).
-    try {
-      sessionStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify({ code, name: name.trim(), studentId: studentId.trim() }));
-    } catch {
-      /* ignore: the Summary shows "-" */
+    const result = await submitRequest(
+      {
+        facility: original,
+        selection: booking,
+        code,
+        borrower: { name: name.trim(), studentId: studentId.trim(), studyProgram: studyProgram.trim() },
+        purpose: needsPurpose ? purpose.trim() : "",
+        letterFileName: needsLetter ? (letterFile?.name ?? null) : null,
+        studentIdDeposit: needsDeposit,
+      },
+      uid ?? "",
+      session?.email ?? "",
+    );
+    if (!result.ok) {
+      setSubmitting(false);
+      setSubmitError("submitFailed");
+      return;
     }
-    router.push(`/catalog/${f.id}/summary?${toSelectionQuery(booking, code)}`);
+    // the Summary reads the saved request; this copy only covers the moment before it loads
+    try {
+      sessionStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify({ code: result.code, name: name.trim(), studentId: studentId.trim() }));
+      sessionStorage.removeItem(LETTER_DRAFT_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    router.push(`/catalog/${f.id}/summary?${toSelectionQuery(booking, result.code)}`);
   }
 
   const rows = text.summaryRows;
@@ -240,6 +335,8 @@ export default function RequestForm({ facility: original }: { facility: Facility
                 <p className="text-[15px] text-ink-muted">{t.lead}</p>
               </div>
 
+              <LevelRequirements level={original.level} />
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField field="name" label={t.fields.name} error={message(errors.name)}>
                   <input
@@ -274,6 +371,7 @@ export default function RequestForm({ facility: original }: { facility: Facility
                 />
               </FormField>
 
+              {needsPurpose && (
               <FormField field="purpose" label={t.fields.purpose} error={message(errors.purpose)}>
                 <textarea
                   {...errorProps("purpose", errors.purpose)}
@@ -284,8 +382,9 @@ export default function RequestForm({ facility: original }: { facility: Facility
                   className={`${INPUT} h-auto resize-y py-3 ${borderFor(errors.purpose)}`}
                 />
               </FormField>
+              )}
 
-              {showLetterUpload && (
+              {needsLetter && (
                 <div className="flex flex-col gap-[6px]">
                   <span id="request-letter-label" className="text-[13px] font-extrabold leading-[18px] text-ink">
                     {t.fields.letter}
@@ -340,33 +439,34 @@ export default function RequestForm({ facility: original }: { facility: Facility
                 </div>
               )}
 
-              <div className="flex flex-col gap-[6px]">
-                <label className="flex cursor-pointer items-start gap-3">
-                  <input
-                    id={fieldId("agreement")}
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="peer sr-only"
-                  />
-                  <span
-                    aria-hidden
-                    className="mt-[1px] flex size-[22px] shrink-0 items-center justify-center rounded-[6px] border-2 border-line-strong bg-surface peer-checked:bg-status-available peer-focus-visible:ring-[3px] peer-focus-visible:ring-periwinkle-400 [&>svg]:opacity-0 peer-checked:[&>svg]:opacity-100"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M2.5 7.5l3 3 6-7" stroke="var(--color-on-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  <span className="text-[14px] leading-[22px] text-ink-body">
-                    {t.agreement}
-                  </span>
-                </label>
-                {errors.agreement && (
-                  <p role="alert" className="text-[12px] font-bold text-status-attention-fg">
-                    {message(errors.agreement)}
-                  </p>
-                )}
-              </div>
+              {needsDeposit && (
+                <CheckField
+                  field="studentIdDeposit"
+                  checked={depositAgreed}
+                  onChange={(v) => {
+                    setDepositAgreed(v);
+                    if (v) setErrors((e) => ({ ...e, studentIdDeposit: undefined }));
+                  }}
+                  label={t.studentIdDeposit}
+                  error={message(errors.studentIdDeposit)}
+                />
+              )}
+              <CheckField
+                field="agreement"
+                checked={agreed}
+                onChange={(v) => {
+                  setAgreed(v);
+                  if (v) setErrors((e) => ({ ...e, agreement: undefined }));
+                }}
+                label={t.agreement}
+                error={message(errors.agreement)}
+              />
+
+              {submitError && (
+                <p role="alert" className="rounded-[12px] border-2 border-status-attention-fg bg-surface-warm px-4 py-3 text-[14px] font-bold text-status-attention-fg">
+                  {message(submitError)}
+                </p>
+              )}
 
               <div className="flex flex-wrap gap-3">
                 <button type="submit" disabled={submitting} className={`${ACTION_BUTTON} bg-brand-primary text-on-primary disabled:opacity-60`}>

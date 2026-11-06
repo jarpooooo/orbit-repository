@@ -18,6 +18,8 @@ export type RequestErrorKey =
   | "letterTooLarge"
   | "letterRequired"
   | "agreementRequired"
+  | "submitFailed"
+  | "studentIdDepositRequired"
   | "completeFirst"
   | "storageBlocked";
 
@@ -44,6 +46,7 @@ const id = {
     sessionFull: "Sesi itu sudah penuh.",
     quantityRange: "Jumlah di luar batas yang diizinkan.",
     outOfRange: "Tanggal itu sudah lewat atau terlalu jauh ke depan.",
+    sessionPast: "Sesi itu sudah dimulai. Pilih sesi berikutnya atau hari lain.",
   } as Record<ScheduleErrorKey, string>,
 
   daily: {
@@ -113,6 +116,7 @@ const id = {
     letterHelp: "Belum punya surat? Isi data di atas, lihat pratinjaunya, unduh, cetak, minta tanda tangan, lalu unggah sebagai PDF.",
     previewLetter: "Pratinjau surat",
     agreement: "Saya bertanggung jawab atas fasilitas ini dan akan mengembalikannya tepat waktu.",
+    studentIdDeposit: "Saya akan menitipkan KTM di tempat pengelola saat mengambil fasilitas ini.",
     submit: "Kirim pengajuan",
     submitting: "Mengirim…",
     back: "Kembali",
@@ -128,6 +132,8 @@ const id = {
       agreementRequired: "Centang pernyataan ini dulu.",
       completeFirst: "Lengkapi data di atas dulu, baru surat bisa dilihat.",
       storageBlocked: "Browser menolak menyimpan data sementara. Coba tab biasa (bukan mode privat).",
+      submitFailed: "Pengajuan gagal tersimpan. Periksa koneksi internet, lalu kirim lagi.",
+      studentIdDepositRequired: "Fasilitas ini mensyaratkan KTM dititipkan. Centang pernyataan ini dulu.",
     } as Record<RequestErrorKey, string>,
   },
 
@@ -144,7 +150,8 @@ const id = {
     ticketLabel: "Tiket pengajuan",
     codeLabel: "KODE PENGAJUAN",
     /** ticket header badge (text exactly as in Figma) */
-    statusLabels: { verification: "Menunggu verifikasi", letter: "Surat diperiksa", direct: "Disetujui" } as Record<PermissionLevel, string>,
+    /** initial status per permission level (project document "Level") */
+    statusLabels: { verification: "Menunggu verifikasi", letter: "Menunggu verifikasi", direct: "Siap diambil" } as Record<PermissionLevel, string>,
     qrLabel: (code: string) => `Kode QR contoh untuk ${code}`,
     nextStepsTitle: "Langkah berikutnya",
     steps: {
@@ -153,11 +160,12 @@ const id = {
       autoApproved: "Disetujui otomatis",
       useRoom: "Gunakan ruangan",
       pickUp: "Ambil di loket (bawa KTM)",
+      pickUpDeposit: "Ambil di loket (titipkan KTM)",
       done: "Selesai",
       returnItem: "Kembalikan",
       afterSession: "Setelah sesi selesai",
-      letterCheck: "Surat sedang diperiksa",
-      staffCheck: "Menunggu verifikasi petugas",
+      letterCheck: "Menunggu persetujuan penanggung jawab",
+      staffCheck: "Menunggu dicek laboran/TU",
       estimate: "Estimasi kurang dari 1 jam kerja",
       decision: "Keputusan dikirim ke notifikasi",
     },
@@ -199,6 +207,7 @@ const en: typeof id = {
     sessionFull: "That session is full.",
     quantityRange: "The number is outside the allowed range.",
     outOfRange: "That date has passed or is too far ahead.",
+    sessionPast: "That session has already started. Pick a later session or another day.",
   },
 
   daily: {
@@ -268,6 +277,7 @@ const en: typeof id = {
     letterHelp: "No letter yet? Fill in the details above, preview it, download, print, get it signed, then upload it as a PDF.",
     previewLetter: "Preview letter",
     agreement: "I am responsible for this facility and will return it on time.",
+    studentIdDeposit: "I will leave my student ID with the manager when I pick this facility up.",
     submit: "Send request",
     submitting: "Sending…",
     back: "Back",
@@ -283,6 +293,8 @@ const en: typeof id = {
       agreementRequired: "Tick this statement first.",
       completeFirst: "Complete the details above first to see the letter.",
       storageBlocked: "The browser refused to save temporary data. Try a normal tab (not private mode).",
+      submitFailed: "The request could not be saved. Check your internet connection, then send it again.",
+      studentIdDepositRequired: "This facility requires leaving your student ID. Tick this statement first.",
     },
   },
 
@@ -298,7 +310,7 @@ const en: typeof id = {
     returnWhen: (date, time) => `${date} · before ${time}`,
     ticketLabel: "Request ticket",
     codeLabel: "REQUEST CODE",
-    statusLabels: { verification: "Awaiting verification", letter: "Letter under review", direct: "Approved" },
+    statusLabels: { verification: "Awaiting verification", letter: "Awaiting verification", direct: "Ready for pickup" },
     qrLabel: (code) => `Sample QR code for ${code}`,
     nextStepsTitle: "Next steps",
     steps: {
@@ -307,11 +319,12 @@ const en: typeof id = {
       autoApproved: "Approved automatically",
       useRoom: "Use the room",
       pickUp: "Pick up at the counter (bring your student ID)",
+      pickUpDeposit: "Pick up at the counter (leave your student ID)",
       done: "Done",
       returnItem: "Return it",
       afterSession: "After the session ends",
-      letterCheck: "Letter under review",
-      staffCheck: "Awaiting staff verification",
+      letterCheck: "Awaiting approval from the person in charge",
+      staffCheck: "Waiting for lab staff / the admin office",
       estimate: "Usually less than 1 working hour",
       decision: "Decision sent as a notification",
     },

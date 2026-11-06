@@ -32,6 +32,7 @@ import {
   type LetterData,
   type LetterDraft,
 } from "@/app/lib/permission-letter";
+import { useLiveFacility } from "@/app/lib/facility-store";
 
 const BUTTON =
   "font-display flex h-[45px] items-center justify-center rounded-[14px] border-2 border-line-strong px-6 text-[17px] leading-[1.2] shadow-[0_4px_0_0_var(--color-shadow)] transition-transform active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-shadow)] disabled:opacity-60";
@@ -50,7 +51,8 @@ const PRINT_STYLES = `
 
 type RenderStatus = "loading" | "ready" | "failed";
 
-export default function LetterPreview({ facility: f }: { facility: Facility }) {
+export default function LetterPreview({ facility: seed }: { facility: Facility }) {
+  const f = useLiveFacility(seed);
   const { locale } = useLocale();
   const text = BOOKING_TEXT[locale];
   const t = text.letter;
@@ -202,6 +204,7 @@ export default function LetterPreview({ facility: f }: { facility: Facility }) {
             {/* paper; can be scrolled sideways on narrow screens */}
             <div
               id="letter-paper"
+              data-lenis-prevent-horizontal
               className="overflow-x-auto rounded-[20px] border-2 border-line-strong bg-pair-gray-bg p-3 shadow-[5px_5px_0_0_var(--color-shadow)] sm:p-6"
             >
               <div

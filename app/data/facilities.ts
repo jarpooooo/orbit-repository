@@ -57,6 +57,34 @@ export const STATUS_STYLES: Record<AvailabilityStatus, StatusStyle> = {
   direct: { box: "bg-level-direct-bg", text: "text-level-direct-fg", dot: "bg-level-direct-fg" },
 };
 
+/* --------------------------- requirements per level --------------------------- */
+
+/**
+ * What each permission level asks of the borrower (project document, section "Level"):
+ *   Langsung:          short form, pick up with the KTM (student ID)       → "Siap diambil"
+ *   Verifikasi admin:  form + leave the KTM with the manager, checked by lab staff / TU → "Menunggu verifikasi"
+ *   Butuh surat:       form + leave the KTM + signed letter, approved by the person in charge → "Menunggu verifikasi"
+ * The request form, the catalog cards, the detail page, and the Summary all read this list.
+ * Labels: FACILITY_TEXT.requirements (app/i18n/facilities.ts).
+ */
+export type Requirement =
+  | "shortForm" // name, student ID, study program
+  | "form" // + purpose
+  | "showStudentId" // show the KTM at pickup
+  | "depositStudentId" // leave the KTM with the manager (checkbox in the form)
+  | "signedLetter" // permission letter: generate, sign, upload the PDF
+  | "autoApproved" // approved by the system
+  | "staffCheck" // checked by lab staff / TU
+  | "ownerApproval"; // approved by the person in charge of the facility
+
+export const LEVEL_REQUIREMENTS: Record<PermissionLevel, readonly Requirement[]> = {
+  direct: ["shortForm", "showStudentId", "autoApproved"],
+  verification: ["form", "depositStudentId", "staffCheck"],
+  letter: ["form", "depositStudentId", "signedLetter", "ownerApproval"],
+};
+
+export const levelNeeds = (level: PermissionLevel, requirement: Requirement) => LEVEL_REQUIREMENTS[level].includes(requirement);
+
 /* ------------------------------- booking mode ------------------------------- */
 
 /**
@@ -139,15 +167,15 @@ const rooms = (group: RoomGroup, count: number, base: Omit<Facility, "id" | "uni
 export const FACILITIES: readonly Facility[] = [
   /* A. Hardware */
   { id: "esp32", category: "hardware", level: "verification", illustration: "catalog/chip", units: 1, subcategory: "mikrokontroler" },
-  { id: "arduino-uno", category: "hardware", level: "verification", illustration: "catalog/chip", units: 1, subcategory: "mikrokontroler", borrowedUntil: "2026-11-16" },
+  { id: "arduino-uno", category: "hardware", level: "verification", illustration: "mikrokontroler", units: 1, subcategory: "mikrokontroler", borrowedUntil: "2026-11-16" },
   { id: "laptop", category: "hardware", level: "letter", illustration: "catalog/laptop", units: 1, location: "computer-lab" },
   { id: "raspberry-pi", category: "hardware", level: "verification", illustration: "catalog/raspberry-pi", units: 1, subcategory: "mikrokontroler" },
   { id: "pc", category: "hardware", level: "letter", illustration: "catalog/komputer", units: 1, location: "computer-lab" },
-  { id: "monitor", category: "hardware", level: "letter", illustration: "catalog/komputer", units: 1, location: "computer-lab" }, // closest: catalog computer (monitor)
-  { id: "keyboard", category: "hardware", level: "direct", illustration: "catalog/komputer", units: 1, location: "computer-lab" },
-  { id: "mouse", category: "hardware", level: "direct", illustration: "catalog/komputer", units: 1, location: "computer-lab" },
+  { id: "monitor", category: "hardware", level: "letter", illustration: "pc-lab", units: 1, location: "computer-lab" }, // closest: a monitor screen (original set)
+  { id: "keyboard", category: "hardware", level: "direct", illustration: "catalog/komputer", units: 1, location: "computer-lab" }, // closest: no keyboard drawing yet
+  { id: "mouse", category: "hardware", level: "direct", illustration: "catalog/komputer", units: 1, location: "computer-lab" }, // closest: no mouse drawing yet
   { id: "nodemcu", category: "hardware", level: "verification", illustration: "catalog/chip", units: 1, subcategory: "mikrokontroler" },
-  { id: "breadboard", category: "hardware", level: "direct", illustration: "catalog/chip", units: 1, subcategory: "mikrokontroler" },
+  { id: "breadboard", category: "hardware", level: "direct", illustration: "mikrokontroler", units: 1, subcategory: "mikrokontroler" },
   { id: "jumper-cable", category: "hardware", level: "direct", illustration: "catalog/kabel-roll", units: 1, subcategory: "mikrokontroler" },
   { id: "sensor-kit", category: "hardware", level: "verification", illustration: "alat-ukur", units: 1, subcategory: "alat-ukur" },
   { id: "relay-module", category: "hardware", level: "verification", illustration: "catalog/chip", units: 1, subcategory: "mikrokontroler" },

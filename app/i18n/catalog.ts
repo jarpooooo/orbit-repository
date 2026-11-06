@@ -37,6 +37,7 @@ const id = {
   },
   detail: {
     chooseSchedule: "Pilih jadwal",
+    signInFirst: "Masuk dulu untuk meminjam. Melihat katalog tetap bisa tanpa akun.",
     back: "Kembali",
   },
 };
@@ -70,6 +71,7 @@ const en: typeof id = {
   },
   detail: {
     chooseSchedule: "Choose a time",
+    signInFirst: "Sign in first to borrow. You can browse the catalog without an account.",
     back: "Back",
   },
 };

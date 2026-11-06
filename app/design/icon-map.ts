@@ -76,11 +76,11 @@ export const UI_ICON_DEFAULTS = {
 /* -------------------------------------------------------------------------- */
 
 export const BRAND_ICONS = {
-  instagram: { src: "img/company-logo/instagram.svg", label: "Instagram" },
-  youtube: { src: "img/company-logo/youtube.svg", label: "YouTube" },
-  tiktok: { src: "img/company-logo/tiktok.svg", label: "TikTok" },
-  x: { src: "img/company-logo/x.svg", label: "X" },
-  linkedin: { src: "img/company-logo/linkedin.svg", label: "LinkedIn" },
+  instagram: { src: "/img/company-logo/instagram.svg", label: "Instagram" },
+  youtube: { src: "/img/company-logo/youtube.svg", label: "YouTube" },
+  tiktok: { src: "/img/company-logo/tiktok.svg", label: "TikTok" },
+  x: { src: "/img/company-logo/x.svg", label: "X" },
+  linkedin: { src: "/img/company-logo/linkedin.svg", label: "LinkedIn" },
 } as const;
 
 export type BrandIconName = keyof typeof BRAND_ICONS;

@@ -7,7 +7,7 @@ import Hero from "./hero";
 import HowToBorrow from "./how-to-borrow";
 import NotificationCta from "./notification-cta";
 import TodaySummary from "./today-summary";
-const IS_LOGGED_IN = true;
+import { SignedInOnly } from "@/app/components/layout/auth-gate";
 
 export default function HomeContent() {
   return (
@@ -16,7 +16,10 @@ export default function HomeContent() {
       <TodaySummary />
       <CategoryPicker />
       <HowToBorrow />
-      {IS_LOGGED_IN && <NotificationCta />}
+      {/* request status notifications only make sense for signed-in users */}
+      <SignedInOnly>
+        <NotificationCta />
+      </SignedInOnly>
     </main>
   );
 }

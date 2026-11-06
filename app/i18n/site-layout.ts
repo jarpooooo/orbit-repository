@@ -95,6 +95,14 @@ const id = {
     copyright: "© 2026 PinjamTEDI. Prototipe untuk ORBIT Repository 2026, Branch Developer. Semua data bersifat simulasi.",
     backToTop: "Kembali ke atas",
   },
+  /** app/not-found.tsx */
+  notFound: {
+    code: "404",
+    title: "Halaman tidak ditemukan",
+    lead: "Tautannya mungkin salah atau halamannya sudah dipindah. Coba cari di katalog, atau mulai lagi dari beranda.",
+    catalog: "Buka katalog",
+    home: "Ke beranda",
+  },
 };
 
 const en: typeof id = {
@@ -166,6 +174,13 @@ const en: typeof id = {
     columns: { explore: "Explore", borrowing: "Borrowing", help: "Help" },
     copyright: "© 2026 PinjamTEDI. Prototype for ORBIT Repository 2026, Branch Developer. All data is simulated.",
     backToTop: "Back to top",
+  },
+  notFound: {
+    code: "404",
+    title: "Page not found",
+    lead: "The link may be wrong, or the page has moved. Try the catalog, or start from the home page.",
+    catalog: "Open the catalog",
+    home: "Back to home",
   },
 };
 

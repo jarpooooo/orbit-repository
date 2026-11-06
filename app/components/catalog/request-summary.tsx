@@ -1,11 +1,14 @@
 // app/components/catalog/request-summary.tsx
 //
 // "Ringkasan" page content (Figma node 1:1633 / 1:1856 / 1:2075): request ticket + "Langkah berikutnya".
-// Status & timeline follow the facility's permission level:
-//   verification → "Menunggu verifikasi" (yellow)   letter → "Surat diperiksa" (orange)   direct → "Disetujui" (green)
+// Status & timeline follow the facility's permission level (project document "Level"):
+//   direct → "Siap diambil" (green, approved by the system)
+//   verification → "Menunggu verifikasi" (yellow, checked by lab staff / TU)
+//   letter → "Menunggu verifikasi" (yellow, approved by the person in charge)
 // Data from the query: ?kode=PJM-1102-4821 + the selection of the facility's booking mode (from the request form).
 // Rows, lead, and the "use" step follow the booking mode (Figma 2.4 per hari / 3.4 per sesi; BOOKING_MODES).
-// Name & student ID are read from sessionStorage REQUEST_STORAGE_KEY (written by the form). Empty → "-".
+// The saved request (requests/{code}, app/lib/requests.ts) gives the borrower and the live status (e.g. cancelled);
+// until it loads, name & student ID come from sessionStorage REQUEST_STORAGE_KEY (written by the form). Empty → "-".
 // Text: BOOKING_TEXT.summary (app/i18n/booking-flow.ts); facility content via localizeFacility.
 // The QR code here is DECORATIVE (a pattern from the code, like "Kode QR contoh" in Figma). Use a real QR once there is an API.
 
@@ -17,7 +20,7 @@ import { useEffect, useState } from "react";
 import { CATEGORY_STYLE } from "@/app/design/category-style";
 import Stepper from "@/app/components/layout/stepper";
 import StatusBadge from "@/app/components/ui/status-badge";
-import { bookingMode, type BookingMode, type Facility } from "@/app/data/facilities";
+import { bookingMode, levelNeeds, type BookingMode, type Facility } from "@/app/data/facilities";
 import { modeOf } from "./booking/registry";
 import CategoryBadge from "@/app/components/ui/category-badge";
 import FacilityIllustration from "@/app/components/ui/facility-illustration";
@@ -25,6 +28,9 @@ import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
 import { localizeFacility, type FacilityView } from "@/app/i18n/facilities";
 import { useLocale } from "@/app/components/layout/language";
 import { REQUEST_STORAGE_KEY, parseSubmittedQuery } from "@/app/lib/booking";
+import { useLiveFacility } from "@/app/lib/facility-store";
+import { INITIAL_STATUS, REQUEST_STATUS_COLORS, useRequest } from "@/app/lib/requests";
+import { MY_REQUESTS_TEXT } from "@/app/i18n/my-requests";
 
 type SummaryText = (typeof BOOKING_TEXT)["id"]["summary"];
 
@@ -35,7 +41,7 @@ type StepState = "done" | "active" | "upcoming";
 type NextStep = { state: StepState; title: string; detail?: string };
 
 function buildNextSteps(f: FacilityView, mode: BookingMode, when: string, until: string, t: SummaryText["steps"]): NextStep[] {
-  const use = { daily: t.pickUp, session: t.useRoom }[mode];
+  const use = { daily: levelNeeds(f.level, "depositStudentId") ? t.pickUpDeposit : t.pickUp, session: t.useRoom }[mode];
   const finish: NextStep = { state: "upcoming", title: { daily: t.returnItem, session: t.done }[mode], detail: until };
   const sent: NextStep = { state: "done", title: t.sent, detail: t.justNow };
 
@@ -107,7 +113,8 @@ function StepMarker({ state }: { state: StepState }) {
   );
 }
 
-export default function RequestSummary({ facility: original }: { facility: Facility }) {
+export default function RequestSummary({ facility: seed }: { facility: Facility }) {
+  const original = useLiveFacility(seed);
   const { locale } = useLocale();
   const f = localizeFacility(original, locale);
   const text = BOOKING_TEXT[locale];
@@ -130,7 +137,12 @@ export default function RequestSummary({ facility: original }: { facility: Facil
     }
   }, [code]);
 
-  if (!request) {
+  const saved = useRequest(code);
+  const shownBorrower = saved ? `${saved.borrower.name} · ${saved.borrower.studentId}` : borrower;
+  const cancelled = saved?.status === "cancelled";
+
+  // saved === null: Firestore says this code does not exist (or is not yours); undefined = still loading
+  if (!request || saved === null) {
     return (
       <SummaryShell mode={mode}>
         <div className="flex max-w-[560px] flex-col items-start gap-4 rounded-[20px] border-2 border-line-strong bg-surface p-6 shadow-[5px_5px_0_0_var(--color-shadow)]">
@@ -153,7 +165,7 @@ export default function RequestSummary({ facility: original }: { facility: Facil
     selectionMode.finishDetail(request.selection, locale),
     t.steps,
   );
-  const details = [...selectionMode.rows(request.selection, f, locale), [text.summaryRows.borrower, borrower] as const];
+  const details = [...selectionMode.rows(request.selection, f, locale), [text.summaryRows.borrower, shownBorrower] as const];
 
   return (
     <SummaryShell mode={mode}>
@@ -180,7 +192,11 @@ export default function RequestSummary({ facility: original }: { facility: Facil
             <span className="text-[12px] font-extrabold">{t.codeLabel}</span>
             <span className="font-display text-[28px] leading-[normal] sm:text-[32px]">{request.code}</span>
           </div>
-          <StatusBadge status={f.level} label={t.statusLabels[f.level]} />
+          {cancelled ? (
+            <StatusBadge status="borrowed" label={MY_REQUESTS_TEXT[locale].statuses.cancelled} />
+          ) : (
+            <StatusBadge status={REQUEST_STATUS_COLORS[saved?.status ?? INITIAL_STATUS[f.level]] ?? "verification"} label={saved ? MY_REQUESTS_TEXT[locale].statuses[saved.status] : t.statusLabels[f.level]} />
+          )}
         </div>
 
         <div className="flex flex-col gap-6 p-5 sm:p-7 md:flex-row md:items-start md:gap-[30px]">

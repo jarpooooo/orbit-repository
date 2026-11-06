@@ -4,7 +4,8 @@
 // - "Top" state: blends into the background (transparent).
 // - "Scrolled" state: floating surface-colored rounded box, shown after scrolling > 24px.
 // - >= xl : desktop layout as in Figma. Links are 16px apart (Figma 26px) so the settings gear fits.
-//           The old "Pinjam sekarang" CTA is replaced by an account (user) icon that goes to /login.
+//           The old "Pinjam sekarang" CTA is replaced by the account button (AccountMenu: /login, or the
+//           signed-in user's menu). The notification bell only shows when signed in.
 // - <  xl : logo + settings + bell + account + hamburger; menu and search move into a panel.
 //           Below sm: 44px buttons and tighter padding; below 360px only the logo mark shows.
 //
@@ -19,12 +20,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useState, type FormEvent } from "react";
 // LazyMotion + m: only loads the basic DOM animation features → smaller JS bundle than the full `motion`
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
-import { Menu, Search, User, X } from "lucide-react";
+import { useLenis } from "lenis/react";
+import { Menu, Search, X } from "lucide-react";
+import AccountMenu from "./account-menu";
 import NotificationPanel from "./notification-panel";
 import SettingsMenu from "./settings-menu";
 import { useText } from "./language";
 import { LAYOUT_TEXT, type PageKey } from "@/app/i18n/site-layout";
-import { ACCOUNT_TEXT } from "@/app/i18n/account";
+import { useSession } from "@/app/lib/auth";
 
 const NAV_LINKS: readonly { page: PageKey; href: string }[] = [
   { page: "catalog", href: "/catalog" },
@@ -36,8 +39,6 @@ const NAV_LINKS: readonly { page: PageKey; href: string }[] = [
 const SCROLL_THRESHOLD = 24;
 const DESKTOP_QUERY = "(min-width: 1280px)"; // Tailwind `xl`
 
-// TODO(backend): replace with the real login state. While false, the notification bell is hidden.
-const IS_LOGGED_IN = true;
 
 type SearchFieldProps = {
   query: string;
@@ -72,7 +73,7 @@ export default function Navbar() {
   const router = useRouter();
   const text = useText(LAYOUT_TEXT);
   const t = text.navbar;
-  const signInLabel = useText(ACCOUNT_TEXT).signIn;
+  const signedIn = useSession() !== null;
   const menuId = useId();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -89,18 +90,21 @@ export default function Navbar() {
   // close the panel on navigation
   useEffect(() => setOpen(false), [pathname]);
 
-  // Escape closes the panel; lock body scroll while the panel is open
+  // Escape closes the panel; lock page scroll while the panel is open (body overflow + pause Lenis)
+  const lenis = useLenis();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    lenis?.stop();
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      lenis?.start();
     };
-  }, [open]);
+  }, [open, lenis]);
 
   // viewport grows to desktop → close the panel
   useEffect(() => {
@@ -135,14 +139,14 @@ export default function Navbar() {
             <Image src="/img/logo.svg" alt="" width={46} height={46} loading="eager" className="size-10 sm:size-[46px]" />
             <span className="flex flex-col whitespace-nowrap max-[359px]:hidden">
               <span className="font-display text-[22px] leading-[1.05] text-ink sm:text-[26px]">PinjamTEDI</span>
-              <span className="hidden text-[12px] font-semibold leading-[1.4] text-ink-body sm:block">
+              <span className="hidden text-[12px] font-bold leading-[1.4] text-ink-body sm:block">
                 {t.subtitle}
               </span>
             </span>
           </Link>
 
           {/* Desktop menu */}
-          <ul className="hidden items-center gap-4 whitespace-nowrap text-[16px] font-semibold leading-[1.3] text-ink xl:flex">
+          <ul className="hidden items-center gap-4 whitespace-nowrap text-[16px] font-bold leading-[1.3] text-ink xl:flex">
             {NAV_LINKS.map((l) => (
               <li key={l.href}>
                 <Link
@@ -167,18 +171,9 @@ export default function Navbar() {
 
             <SettingsMenu />
 
-            {IS_LOGGED_IN && <NotificationPanel />}
+            {signedIn && <NotificationPanel />}
 
-            {/* Account: goes to the login page */}
-            <Link
-              href="/login"
-              aria-label={signInLabel}
-              title={signInLabel}
-              aria-current={pathname === "/login" ? "page" : undefined}
-              className="flex size-11 shrink-0 items-center justify-center rounded-[14px] border-2 border-line-strong bg-surface text-ink transition-colors hover:bg-brand-secondary/40 sm:size-12"
-            >
-              <User size={20} strokeWidth={2.25} aria-hidden />
-            </Link>
+            <AccountMenu />
 
             {/* Hamburger (mobile/tablet) */}
             <button
@@ -216,6 +211,7 @@ export default function Navbar() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
+                data-lenis-prevent
                 className="mx-auto mt-3 max-h-[calc(100dvh-6.5rem)] w-full max-w-[1376px] overflow-y-auto rounded-3xl border-2 border-line-strong bg-surface p-4 shadow-hard-royal xl:hidden"
               >
                 <SearchField query={query} onQueryChange={setQuery} onSubmit={onSearch} className="flex" />
@@ -227,7 +223,7 @@ export default function Navbar() {
                         href={l.href}
                         aria-current={isActive(l.href) ? "page" : undefined}
                         className={[
-                          "flex min-h-12 items-center rounded-2xl border-2 px-4 text-[16px] font-semibold transition-colors",
+                          "flex min-h-12 items-center rounded-2xl border-2 px-4 text-[16px] font-bold transition-colors",
                           isActive(l.href)
                             ? "border-line-strong bg-brand-secondary text-on-secondary shadow-[0_3px_0_0_var(--color-shadow)]"
                             : "border-transparent text-ink hover:bg-page",

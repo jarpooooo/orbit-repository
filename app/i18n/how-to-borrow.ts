@@ -18,7 +18,7 @@ const id = {
     "Temukan alat atau ruang lewat pencarian dan filter.",
     "Buka detail fasilitas, cek spesifikasi dan tingkat izinnya.",
     "Slot jam untuk ruang, tanggal ambil dan kembali untuk alat.",
-    "Isi keperluanmu. Kalau butuh surat, lampirkan PDF-nya.",
+    "Isi form sesuai level: centang titip KTM, dan lampirkan surat kalau fasilitasnya butuh surat.",
     "Tunjukkan kode QR dan KTM ke pengelola saat mengambil.",
   ],
 };
@@ -33,7 +33,7 @@ const en: typeof id = {
     "Find a tool or room with search and filters.",
     "Open the facility details, check its specs and permission level.",
     "Time slots for rooms, pickup and return dates for tools.",
-    "Tell us what it is for. If you need a letter, attach the PDF.",
+    "Fill in the form for the level: tick the student ID deposit, and attach the letter if the facility needs one.",
     "Show your QR code and student ID to the staff when you collect it.",
   ],
 };
