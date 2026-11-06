@@ -17,8 +17,10 @@ import { localizeFacility } from "@/app/i18n/facilities";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
 import { modeFor } from "./booking/registry";
+import { useLiveFacility } from "@/app/lib/facility-store";
 
-export default function SchedulePicker({ facility }: { facility: Facility }) {
+export default function SchedulePicker({ facility: seed }: { facility: Facility }) {
+  const facility = useLiveFacility(seed);
   const { locale } = useLocale();
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => setNow(new Date()), []);

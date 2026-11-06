@@ -12,11 +12,15 @@ import { CATEGORY_STYLE } from "@/app/design/category-style";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
 import CategoryBadge from "@/app/components/ui/category-badge";
-import FacilityIllustration, { LetterMark } from "@/app/components/ui/facility-illustration";
+import FacilityIllustration from "@/app/components/ui/facility-illustration";
+import LevelRequirements from "./level-requirements";
 import StatusBadge from "@/app/components/ui/status-badge";
-import { STATUS_STYLES, bookingMode, getFacility } from "@/app/data/facilities";
+import { bookingMode } from "@/app/data/facilities";
+import { useFacilityById } from "@/app/lib/facility-store";
+import { loginHref } from "@/app/components/layout/auth-gate";
+import { useAuth } from "@/app/lib/auth";
 import { CATALOG_TEXT } from "@/app/i18n/catalog";
-import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
+import { localizeFacility } from "@/app/i18n/facilities";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
 
@@ -26,11 +30,11 @@ const BUTTON =
 /** `slug` is validated by the page (notFound) before this renders. */
 export default function FacilityDetail({ slug }: { slug: string }) {
   const { locale } = useLocale();
-  const original = getFacility(slug);
+  const original = useFacilityById(slug);
+  const auth = useAuth();
   if (!original) return null;
   const f = localizeFacility(original, locale);
   const t = CATALOG_TEXT[locale].detail;
-  const note = FACILITY_TEXT[locale].permissionNotes[f.level];
 
   return (
     <main className="min-h-screen bg-page px-5 pb-14 pt-[112px] sm:px-8 sm:pb-16 sm:pt-[132px] xl:px-[140px] xl:pb-20">
@@ -69,26 +73,23 @@ export default function FacilityDetail({ slug }: { slug: string }) {
               ))}
             </dl>
 
-            {/* Permission note ("letter" level: marked with the signed-letter illustration) */}
-            <div
-              className={`flex w-full items-center gap-3 rounded-2xl border-2 border-line-strong p-[14px] text-[14px] ${STATUS_STYLES[f.level].box}`}
-            >
-              {f.level === "letter" && <LetterMark />}
-              <p className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-[10px]">
-                <span className="shrink-0 font-extrabold text-ink">{note.title}</span>
-                <span className="text-ink-body">{note.text}</span>
-              </p>
-            </div>
+            {/* Requirements of the permission level (project document "Level") */}
+            <LevelRequirements level={f.level} />
 
             {/* Actions */}
             <div className="flex flex-wrap gap-[14px]">
-              <Link href={`/catalog/${f.id}/schedule`} className={`${BUTTON} bg-brand-primary text-on-primary`}>
+              {/* booking needs an account: signed-out users go to /login and come back to the schedule */}
+              <Link
+                href={auth.status === "signed-out" ? loginHref(`/catalog/${f.id}/schedule`) : `/catalog/${f.id}/schedule`}
+                className={`${BUTTON} bg-brand-primary text-on-primary`}
+              >
                 {t.chooseSchedule}
               </Link>
               <Link href="/catalog" className={`${BUTTON} bg-surface text-ink`}>
                 {t.back}
               </Link>
             </div>
+            {auth.status === "signed-out" && <p className="text-[13px] font-bold text-ink-muted-on-page">{t.signInFirst}</p>}
           </div>
         </div>
       </div>

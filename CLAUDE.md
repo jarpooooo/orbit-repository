@@ -2,19 +2,24 @@
 
 # Orbit Repository (PinjamTEDI)
 
-Facility-borrowing web app ("PinjamTEDI"), built from the Figma file "Orbit repository". Prototype: all pages exist, data is simulated (no API yet).
+Facility-borrowing web app ("PinjamTEDI"), built from the Figma file "Orbit repository". All pages exist. Facilities, requests, and accounts live in Firebase (project `pinjamtedi`); availability per day/session is still simulated.
 
 ## Stack
 - Next.js 16.4 (App Router, Turbopack), React 19.3, TypeScript
 - Tailwind CSS v4 (CSS-first `@theme`, no tailwind.config), loaded through `@tailwindcss/turbopack`
 - `lucide-react` v1 (icons), `motion` (animation), `lenis` (smooth scroll)
-- `next.config.ts` enables `cacheComponents`, `partialPrefetching`, `experimental.agentFeedback`
+- `next.config.ts`: `output: "export"` (static site on Firebase Hosting, free Spark plan; see DEPLOY.md), `images.unoptimized`, `experimental.agentFeedback`. `cacheComponents` / `partialPrefetching` are OFF (they need a Next server). No server code: no `searchParams` in server pages (read them in a client component with `useSearchParams`, e.g. `catalog/catalog-from-url.tsx`), no route handlers, no next.config `redirects` / `headers` (they live in `firebase.json`), every dynamic route needs `generateStaticParams`.
 
 Next.js 16 differs from older versions. Read `node_modules/next/dist/docs/` before using a Next API.
 
 ## Commands
 - `npm run dev`: dev server
-- `npm run build`: production build
+- `npm run emulators`: Firebase Auth + Firestore emulators (needs JDK 21, found by `scripts/emulators.mjs`; data kept in `emulator-data/`). `NEXT_PUBLIC_USE_EMULATORS=true` in `.env.local` points the app at them.
+- `npm run seed` / `npm run seed -- --cloud`: write `FACILITIES` to Firestore `facilities` (emulator / real project; replaces the documents)
+- `firebase deploy --only firestore:rules`: publish `firestore.rules`
+- `npm run build`: `scripts/static-files.mjs` (writes `public/manifest.webmanifest`, `robots.txt`, `sitemap.xml`; git-ignored) + static export to `out/`
+- `npm start`: serve `out/` with the Firebase Hosting server (port 5050)
+- `npm run deploy` (`-- preview` for a 7-day preview URL): build against the real project + upload to Hosting. GitHub: push to `main` deploys live, PRs get previews (`.github/workflows/`).
 - `npm run lint`: ESLint (flat config, `eslint-config-next`)
 
 There is no test setup.
@@ -26,6 +31,8 @@ There is no test setup.
 - `app/data/facilities.ts`: language-neutral facility data and domain types (`FacilityCategory`, `CATEGORY_ORDER`, `PermissionLevel`, `AvailabilityStatus`, `STATUS_STYLES`, `SUBCATEGORIES`, ...), plus `getFacility`, `getFacilitiesByCategory`, `CATEGORY_COUNTS`, `countInGroup`. See "Facilities" below. `app/data/site.ts`: SEO/site info.
 - `app/i18n/`: UI text dictionaries (Indonesian / English), see "Language" below.
 - `app/lib/`: `date.ts` (date helpers + Indonesian day/month names), `booking.ts` (sessions, booking rules, query parsing), `permission-letter.ts` (fills `public/templates/permission-letter.docx`).
+- SEO: root `metadata` in `app/layout.tsx`, `app/opengraph-image.png` (static link preview), `scripts/static-files.mjs` (sitemap: public pages + facility details; robots), `not-found.tsx` (translated 404 → out/404.html). Signed-in pages and booking steps are `noindex`. `SITE_URL` = `NEXT_PUBLIC_SITE_URL`, else https://pinjamtedi.web.app in production builds.
+- PWA: manifest from `scripts/static-files.mjs` (install, icons in `public/icons/` rendered from `logo.svg`, shortcuts), `public/sw.js` (network-only; serves `public/offline.html` when a page cannot load; bump `VERSION` when either file changes), `components/layout/service-worker.tsx` (registers it when idle, production only; unregisters in dev), `/sw.js` no-cache headers in `firebase.json`, `appleWebApp` + apple-touch-icon in `app/layout.tsx`. Install = the browser own prompt/menu (no custom button). `offline.html` is self-contained (inline CSS with the THEME token values, ID/EN + dark from localStorage); keep it in sync if the tokens change.
 - `app/globals.css`: imports Tailwind, `colors.css`, `typography.css`. Use `font-display` / `font-sans` utilities for fonts.
 - `app/design/`: design system
   - `colors.css`: tokens. (1) PALETTE: `navy`, `royal`, `periwinkle`, `grape`, `mint`, `sun`, `tangerine`, `slate`, each 50–950, plus single Figma colors; steps marked `= Figma` match the design exactly. Same in both themes. (2) THEME tokens (`@theme static`), each written once as `light-dark(<light>, <dark>)`. (3) SEMANTIC tokens in `@theme inline` (brand, on-*, status, level, category, rank). (4) SCHEME: `color-scheme` switch and the `dark:` custom variant.
@@ -33,6 +40,14 @@ There is no test setup.
   - `semantic-colors.ts`: `SEMANTIC_COLORS`, which maps meanings (brand, status, level, category, rank, surface, ...) to variants. Group names match the SEMANTIC section of `colors.css`.
   - `icon-map.ts`: `UI_ICONS` (lucide), `BRAND_ICONS` (custom SVG, since lucide v1 has no brand icons), and `ILLUSTRATIONS` / `IllustrationId` (the one map of the 14 SVGs in `public/img/illustrations/`, plus the footer shelf list). `[Figma]` marks icons seen in the design; `[+]` marks icons added because they will likely be needed.
   - `category-style.ts`: `CATEGORY_STYLE`, the one map from a facility category to Tailwind classes (`chip`, `ink`, `panel`, `panelDimmed`, `dot`, `filterActive`).
+
+## Firebase
+- `app/lib/firebase.ts` (app + emulator switch only), `firebase-auth.ts` (Auth), `firestore.ts` (Firestore): split so a page downloads only what it uses. `auth.ts` is imported by the navbar on every page, so it has no static Firebase import (it loads `firebase/auth` after hydration); never import `firestore.ts` from a module the navbar or footer imports. `app/lib/auth.ts` (Firebase Auth; role from the email domain: `@mail.ugm.ac.id` student, `@ugm.ac.id` staff), `app/components/layout/auth-gate.tsx` (`RequireAuth` on /my-requests and every booking step after the detail page; `SignedInOnly`).
+- `facilities/{id}`: data fields of a facility + `order`. `app/lib/facility-store.ts` subscribes live (`useFacilities`, `useLiveFacility`, `currentFacility`); `FACILITIES` is the seed and the first render. Only ids present in `FACILITIES` show, because their text lives in i18n. Public read, no client writes.
+- `requests/{code}`: written by the request form (`app/lib/requests.ts`: `submitRequest`, `useMyRequests`, `useRequest`, `cancelRequest`). Initial status from the level (`INITIAL_STATUS`: direct → readyPickup "Siap diambil"; verification and letter → verifying "Menunggu verifikasi"). Rules: owner only; create checks the level against the facility document; the only later change is the owner cancelling an open request. Staff status changes are not built yet.
+- Permission levels (project document "Level"): `LEVEL_REQUIREMENTS` in `app/data/facilities.ts` lists what each level asks for (short form / form + purpose, show or leave the KTM, signed letter, who approves). The request form fields, the catalog card line, the detail checklist (`components/catalog/level-requirements.tsx`), the Summary steps, and `firestore.rules` (purpose, `studentIdDeposit`, `letterFileName` per level) all follow it. KTM = a checkbox ("titip KTM di tempat pengelola"), not an upload.
+- `users/{uid}`: student profile from the register page; prefills the request form.
+- Rules changes: test against the emulator first, then deploy. The letter PDF is not uploaded (only its file name is saved).
 
 ## Conventions
 - Code is in English: file names, identifiers, types, and comments. User-facing text (labels, headings, messages) stays Indonesian; keep it in the `app/i18n/` dictionaries keyed by English keys (`room`, `logistics`, `verification`, `letter`, `direct`, `borrowed`).

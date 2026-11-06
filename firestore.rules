@@ -1,0 +1,122 @@
+rules_version = '2';
+
+// PinjamTEDI Firestore rules. Everything is closed unless a block below opens it.
+// Roles follow the UGM email domain (same rule as app/lib/auth.ts):
+//   @mail.ugm.ac.id → student     @ugm.ac.id → staff
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email is string;
+    }
+    function isStudent() {
+      return signedIn() && request.auth.token.email.lower().matches('.*@mail[.]ugm[.]ac[.]id$');
+    }
+    function shortString(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max;
+    }
+
+    // Student profile written at sign-up (register page). Only the owner can read / write it,
+    // and nobody can give themselves another role.
+    match /users/{uid} {
+      function validProfile() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['name', 'nim', 'program', 'year', 'email', 'role', 'createdAt'])
+          && shortString(d.name, 120)
+          && d.nim.matches('^[0-9]{2}/[0-9]{6}/[A-Z]{2}/[0-9]{5}$')
+          && shortString(d.program, 60)
+          && d.year.matches('^20[0-9]{2}$')
+          && d.email == request.auth.token.email
+          && d.role == 'student';
+      }
+
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if isStudent() && request.auth.uid == uid && validProfile()
+        && request.resource.data.createdAt == request.time;
+      allow update: if isStudent() && request.auth.uid == uid && validProfile()
+        && (request.resource.data.createdAt == resource.data.createdAt || request.resource.data.createdAt == request.time);
+      allow delete: if false;
+    }
+
+    // Facility data (stock, level, loans). Public to read, so the catalog works without an account.
+    // Written only by the seed script (scripts/seed-facilities.mjs) or the Firebase console, never by the app.
+    match /facilities/{facilityId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Borrowing requests (app/lib/requests.ts), document id = request code.
+    // A UGM user creates their own request with the initial status of the facility's level
+    // (project document "Level": direct → readyPickup; verification and letter → verifying),
+    // and the level's requirements: purpose (not for direct), student ID deposit (not for direct), letter (letter only),
+    // reads only their own, and can only cancel an open one. Staff tools come later.
+    match /requests/{code} {
+      function isUgm() {
+        return signedIn() && request.auth.token.email.lower().matches('.*@(mail[.])?ugm[.]ac[.]id$');
+      }
+      function initialStatus(level) {
+        return {'direct': 'readyPickup', 'verification': 'verifying', 'letter': 'verifying'}[level];
+      }
+      function isoDate(value) {
+        return value is string && value.matches('^20[0-9]{2}-[0-9]{2}-[0-9]{2}$');
+      }
+      function count(value, max) {
+        return value is int && value >= 1 && value <= max;
+      }
+      function validSelection(d) {
+        let s = d.selection;
+        return s is map && (
+          (d.mode == 'daily'
+            && s.keys().hasOnly(['pickupDate', 'returnDate', 'units']) && s.keys().hasAll(['pickupDate', 'returnDate', 'units'])
+            && isoDate(s.pickupDate) && isoDate(s.returnDate) && s.returnDate >= s.pickupDate
+            && count(s.units, 50) && d.startDate == s.pickupDate)
+          || (d.mode == 'session'
+            && s.keys().hasOnly(['date', 'sessionId', 'participants']) && s.keys().hasAll(['date', 'sessionId', 'participants'])
+            && isoDate(s.date) && s.sessionId is int && s.sessionId >= 0 && s.sessionId <= 3
+            && count(s.participants, 500) && d.startDate == s.date)
+        );
+      }
+      function validBorrower(b) {
+        return b is map && b.keys().hasOnly(['name', 'studentId', 'studyProgram'])
+          && shortString(b.name, 120) && b.studentId is string && b.studentId.matches('^[0-9]{6,15}$')
+          && shortString(b.studyProgram, 120);
+      }
+      function validNewRequest() {
+        let d = request.resource.data;
+        let facility = get(/databases/$(database)/documents/facilities/$(d.facilityId));
+        return code.matches('^PJM-[0-9]{4}-[0-9]{4}$')
+          && d.keys().hasOnly(['uid', 'email', 'facilityId', 'level', 'mode', 'selection', 'startDate', 'borrower',
+                               'purpose', 'letterFileName', 'studentIdDeposit', 'status', 'createdAt', 'updatedAt'])
+          && d.uid == request.auth.uid
+          && d.email == request.auth.token.email
+          && d.facilityId is string
+          && exists(/databases/$(database)/documents/facilities/$(d.facilityId))
+          && d.level == facility.data.level
+          && d.status == initialStatus(d.level)
+          && validSelection(d)
+          && validBorrower(d.borrower)
+          && (d.level == 'direct' ? (d.purpose is string && d.purpose.size() <= 1000) : shortString(d.purpose, 1000))
+          && d.studentIdDeposit == (d.level != 'direct')
+          && (d.level == 'letter' ? shortString(d.letterFileName, 200) : d.letterFileName == null)
+          && d.createdAt == request.time
+          && d.updatedAt == request.time;
+      }
+
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isUgm() && validNewRequest();
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && resource.data.status in ['readyPickup', 'verifying']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt', 'updatedAt'])
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancelledAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // Everything else stays closed until its own block is written.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

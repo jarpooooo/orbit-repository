@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import LetterPreview from "@/app/components/catalog/letter-preview";
 import { FACILITIES, getFacility } from "@/app/data/facilities";
 import { localizeFacility } from "@/app/i18n/facilities";
+import { RequireAuth } from "@/app/components/layout/auth-gate";
 
 type Params = Promise<{ slug: string }>;
 
@@ -38,5 +39,10 @@ export default function LetterPage({ params }: { params: Params }) {
 async function LetterContent({ params }: { params: Params }) {
   const f = getFacility((await params).slug);
   if (!f) notFound();
-  return <LetterPreview facility={f} />;
+  // signed-in users only: the request is saved under the account (catalog + detail stay public)
+  return (
+    <RequireAuth>
+      <LetterPreview facility={f} />
+    </RequireAuth>
+  );
 }

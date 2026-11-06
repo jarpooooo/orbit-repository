@@ -1,12 +1,18 @@
 // app/components/register/register-content.tsx
 //
-// Register UI (Figma node 125:1297). UI only: the backend handles accounts (handleSignUp).
-// The student card photo is checked (type, 2 MB) but not uploaded anywhere yet.
+// Register UI (Figma node 125:1297). Sign-up with Firebase Auth (app/lib/auth.ts) through handleSignUp():
+//  - email + password: creates the account, saves NIM / program / cohort in Firestore users/{uid},
+//    and sends a verification email (on the emulators the link appears in the emulator terminal)
+//  - Google: the account comes from Google, the NIM / program / cohort from this form (validated first)
+// The student card photo is checked (type, 2 MB) but not uploaded anywhere yet (needs Cloud Storage).
 
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
+import { signUpWithEmail, signUpWithGoogle, type AuthErrorKey } from "@/app/lib/auth";
+import { ACCOUNT_TEXT } from "@/app/i18n/account";
 import { useText } from "@/app/components/layout/language";
 import { AuthField, AuthLayout, BUTTON, GoogleButton, OrDivider, describedBy, fieldClass } from "@/app/components/auth/auth-parts";
 import { REGISTER_TEXT } from "@/app/i18n/register";
@@ -28,6 +34,10 @@ const isStrong = (pw: string) => pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.t
 
 export default function RegisterContent() {
   const t = useText(REGISTER_TEXT);
+  const errorsText = useText(ACCOUNT_TEXT).errors;
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [result, setResult] = useState<AuthErrorKey | null>(null);
   const uid = useId();
   const ids: Record<FieldName, string> = {
     name: `${uid}-name`,
@@ -50,8 +60,16 @@ export default function RegisterContent() {
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  // TODO(backend): send the sign-up request here (email or Google), then redirect to /login or home.
-  function handleSignUp() {}
+  async function handleSignUp(kind: "email" | "google") {
+    if (pending) return;
+    setPending(true);
+    setResult(null);
+    const profile = { name: form.name.trim(), nim: form.nim.trim(), program: form.program, year: form.year };
+    const outcome = kind === "email" ? await signUpWithEmail(form.email, form.password, profile) : await signUpWithGoogle(profile);
+    setPending(false);
+    if (outcome === null) return router.push("/");
+    if (outcome !== "cancelled") setResult(outcome);
+  }
 
   function pickKtm(file: File | undefined) {
     if (!file) return;
@@ -68,23 +86,31 @@ export default function RegisterContent() {
     if (ktmInput.current) ktmInput.current.value = "";
   }
 
-  function onSubmit(ev: React.FormEvent) {
-    ev.preventDefault();
+  /** Google sign-up skips email + password (they come from Google), the rest is checked the same way. */
+  function validate(kind: "email" | "google") {
     const e: Errors = {};
     if (form.name.trim().length < 3) e.name = "errName";
     if (!NIM_PATTERN.test(form.nim.trim())) e.nim = "errNim";
     if (!form.program) e.program = "errProgram";
     if (!form.year) e.year = "errYear";
-    if (!EMAIL_PATTERN.test(form.email.trim())) e.email = "errEmail";
-    if (!isStrong(form.password)) e.password = "errPassword";
+    if (kind === "email" && !EMAIL_PATTERN.test(form.email.trim())) e.email = "errEmail";
+    if (kind === "email" && !isStrong(form.password)) e.password = "errPassword";
     if (!agree) e.agree = "errAgree";
     if (ktm === null && errors.ktm) e.ktm = errors.ktm; // keep a pending photo error
     setErrors(e);
 
     const order: FieldName[] = ["name", "nim", "program", "year", "email", "password", "ktm", "agree"];
     const first = order.find((k) => e[k]);
-    if (first) return document.getElementById(ids[first])?.focus();
-    handleSignUp();
+    if (first) {
+      document.getElementById(ids[first])?.focus();
+      return false;
+    }
+    return true;
+  }
+
+  function onSubmit(ev: React.FormEvent) {
+    ev.preventDefault();
+    if (validate("email")) void handleSignUp("email");
   }
 
   const err = (k: FieldName) => (errors[k] ? t[errors[k]] : undefined);
@@ -114,7 +140,13 @@ export default function RegisterContent() {
       <h1 id={`${uid}-title`} className="font-display text-[34px] font-normal leading-none text-ink sm:text-[40px]">{t.title}</h1>
       <p className="text-[14px] text-ink-body">{t.hint}</p>
 
-      <GoogleButton label={t.google} onClick={handleSignUp} />
+      {result && (
+        <p role="alert" className="rounded-[12px] border-2 border-status-attention-fg bg-status-attention-bg px-4 py-3 text-[13px] font-bold text-status-attention-fg">
+          ⚠ {errorsText[result]}
+        </p>
+      )}
+
+      <GoogleButton label={t.google} onClick={() => validate("google") && void handleSignUp("google")} />
       <OrDivider label={t.divider} />
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
@@ -198,7 +230,7 @@ export default function RegisterContent() {
 
         {/* Student card photo (optional) */}
         <div className="flex flex-col gap-[6px]">
-          <div className={`flex flex-wrap items-center gap-3 rounded-[14px] border-2 border-dashed bg-surface-row px-[14px] py-3 ${errors.ktm ? "border-status-orange-fg" : "border-line-strong"}`}>
+          <div className={`flex flex-wrap items-center gap-3 rounded-[14px] border-2 border-dashed bg-surface-row px-[14px] py-3 ${errors.ktm ? "border-status-attention-fg" : "border-line-strong"}`}>
             <input ref={ktmInput} type="file" accept="image/*" className="sr-only" tabIndex={-1} onChange={(e) => pickKtm(e.target.files?.[0])} />
             <button
               id={ids.ktm}
@@ -213,7 +245,7 @@ export default function RegisterContent() {
               <p className="break-words text-[12px] text-ink-body">{ktm ? ktm.name : t.ktmHint}</p>
             </div>
           </div>
-          {errors.ktm && <p role="alert" className="text-[12px] font-bold text-status-orange-fg">⚠ {t[errors.ktm]}</p>}
+          {errors.ktm && <p role="alert" className="text-[12px] font-bold text-status-attention-fg">⚠ {t[errors.ktm]}</p>}
         </div>
 
         <div className="flex flex-col gap-[6px]">
@@ -227,10 +259,10 @@ export default function RegisterContent() {
             </span>
             <span className="text-[13px] leading-[1.5] text-ink-body">{t.agree}</span>
           </label>
-          {err("agree") && <p role="alert" className="text-[12px] font-bold text-status-orange-fg">⚠ {err("agree")}</p>}
+          {err("agree") && <p role="alert" className="text-[12px] font-bold text-status-attention-fg">⚠ {err("agree")}</p>}
         </div>
 
-        <button type="submit" className={`${BUTTON} h-[49px] bg-brand-primary text-on-primary`}>{t.submit}</button>
+        <button type="submit" disabled={pending} aria-busy={pending} className={`${BUTTON} h-[49px] bg-brand-primary text-on-primary disabled:opacity-60`}>{pending ? "…" : t.submit}</button>
       </form>
 
       <p className="text-[14px] font-bold">

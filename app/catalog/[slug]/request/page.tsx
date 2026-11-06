@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import RequestForm from "@/app/components/catalog/request-form";
 import { FACILITIES, getFacility } from "@/app/data/facilities";
 import { localizeFacility } from "@/app/i18n/facilities";
+import { RequireAuth } from "@/app/components/layout/auth-gate";
 
 type Params = Promise<{ slug: string }>;
 
@@ -40,5 +41,10 @@ export default function RequestPage({ params }: { params: Params }) {
 async function RequestContent({ params }: { params: Params }) {
   const f = getFacility((await params).slug);
   if (!f) notFound();
-  return <RequestForm facility={f} />;
+  // signed-in users only: the request is saved under the account (catalog + detail stay public)
+  return (
+    <RequireAuth>
+      <RequestForm facility={f} />
+    </RequireAuth>
+  );
 }

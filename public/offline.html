@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+  public/offline.html: shown by public/sw.js when a page cannot load (no internet).
+  Self-contained on purpose: the site's CSS and JS may not be cached, so styles are inline.
+  Colors = the THEME token values from app/design/colors.css (light / dark); fonts fall back to system fonts.
+  Follows the saved language (pinjamtedi:lang) and theme (pinjamtedi:theme) like the rest of the site.
+  Reloads by itself when the connection comes back.
+-->
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#d7eefb" />
+    <title>Kamu sedang offline | PinjamTEDI</title>
+    <link rel="icon" href="/img/logo.svg" />
+    <style>
+      :root {
+        --page: #d7eefb; --surface: #ffffff; --ink: #0d2a4b; --body: #2b3f57; --line: #0d2a4b; --shadow: #0d2a4b;
+        --primary: #f2862e; --on-primary: #0d2a4b;
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] {
+        --page: #0b1a2e; --surface: #132a4a; --ink: #f3f8fd; --body: #d3e3f2; --line: #86a5cf; --shadow: #4d74b0;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+        background: var(--page); color: var(--body);
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      main {
+        width: 100%; max-width: 520px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px;
+        background: var(--surface); border: 2px solid var(--line); border-radius: 22px; padding: 28px;
+        box-shadow: 6px 6px 0 0 var(--shadow);
+      }
+      .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); font-weight: 800; font-size: 20px; }
+      h1 { margin: 0; color: var(--ink); font-family: "Lilita One", system-ui, sans-serif; font-weight: 400; font-size: 34px; line-height: 1.05; }
+      p { margin: 0; font-size: 16px; line-height: 1.55; }
+      button {
+        font: inherit; font-weight: 800; font-size: 16px; cursor: pointer;
+        background: var(--primary); color: var(--on-primary);
+        border: 2px solid var(--line); border-radius: 14px; padding: 11px 22px;
+        box-shadow: 0 4px 0 0 var(--shadow);
+      }
+      button:active { transform: translateY(2px); box-shadow: 0 2px 0 0 var(--shadow); }
+      button:focus-visible { outline: 3px solid #6c98ff; outline-offset: 3px; }
+      .hint { font-size: 13px; opacity: 0.85; }
+    </style>
+    <script>
+      try {
+        var t = localStorage.getItem("pinjamtedi:theme");
+        if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+        if (localStorage.getItem("pinjamtedi:lang") === "en") document.documentElement.lang = "en";
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <main>
+      <div class="brand"><img src="/img/logo.svg" alt="" width="40" height="40" /> PinjamTEDI</div>
+      <h1 data-text="title">Kamu sedang offline</h1>
+      <p data-text="lead">Halaman ini butuh internet supaya stok, jadwal, dan pengajuanmu selalu terbaru. Sambungkan lagi internetmu, lalu coba muat ulang.</p>
+      <button type="button" data-text="retry" onclick="location.reload()">Coba lagi</button>
+      <p class="hint" data-text="hint">Halaman akan dimuat ulang otomatis begitu internet tersambung.</p>
+    </main>
+    <script>
+      var TEXT = {
+        en: {
+          title: "You are offline",
+          lead: "This page needs the internet so stock, schedules, and your requests stay up to date. Reconnect, then try again.",
+          retry: "Try again",
+          hint: "The page reloads by itself as soon as you are back online.",
+          doc: "You are offline | PinjamTEDI",
+        },
+      };
+      var en = document.documentElement.lang === "en";
+      if (en) {
+        document.querySelectorAll("[data-text]").forEach(function (el) { el.textContent = TEXT.en[el.dataset.text]; });
+        document.title = TEXT.en.doc;
+      }
+      window.addEventListener("online", function () { location.reload(); });
+    </script>
+  </body>
+</html>

@@ -12,6 +12,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLenis } from "lenis/react";
 import { SITE } from "@/app/data/site";
 import {
   BRAND_ICONS,
@@ -33,7 +34,7 @@ const SOCIAL_LINKS: Record<(typeof FOOTER_SOCIALS)[number], string> = {
 };
 
 /** Link columns; titles and link labels come from LAYOUT_TEXT (footer.columns / pages). */
-const LINK_COLUMNS: readonly { column: FooterColumnKey; links: readonly { page: PageKey; href: string }[] }[] = [
+const LINK_COLUMNS: readonly { column: FooterColumnKey; links: readonly { page: PageKey; href: string; file?: true }[] }[] = [
   {
     column: "explore",
     links: [
@@ -46,19 +47,21 @@ const LINK_COLUMNS: readonly { column: FooterColumnKey; links: readonly { page: 
   {
     column: "borrowing",
     links: [
+      // history, returns, and notifications all live on "Pengajuan saya" for now (no separate pages)
       { page: "myRequests", href: "/my-requests" },
-      { page: "history", href: "/history" },
-      { page: "returns", href: "/returns" },
-      { page: "notifications", href: "/notifications" },
+      { page: "history", href: "/my-requests" },
+      { page: "returns", href: "/my-requests" },
+      { page: "notifications", href: "/my-requests" },
     ],
   },
   {
     column: "help",
     links: [
-      { page: "guide", href: "/guide" },
-      { page: "sampleLetter", href: "/sample-letter" },
-      { page: "faq", href: "/faq" },
-      { page: "reportIssue", href: "/report-issue" },
+      // guide + FAQ = "Cara Pinjam"; the sample letter is the blank .docx template; issues go by email
+      { page: "guide", href: "/how-to-borrow" },
+      { page: "sampleLetter", href: "/templates/permission-letter.docx", file: true },
+      { page: "faq", href: "/how-to-borrow" },
+      { page: "reportIssue", href: `mailto:${SITE.email}?subject=Kendala%20PinjamTEDI`, file: true },
     ],
   },
 ];
@@ -143,6 +146,7 @@ function Shelf() {
 
 export default function Footer() {
   const isHome = usePathname() === "/";
+  const lenis = useLenis();
   const text = useText(LAYOUT_TEXT);
   const t = text.footer;
   const BackToTopIcon = UI_ICONS.backToTop;
@@ -211,12 +215,23 @@ export default function Footer() {
               <ul className="flex flex-col gap-4">
                 {column.links.map((link) => (
                   <li key={link.page}>
-                    <Link
-                      href={link.href}
-                      className="text-[16px] font-normal leading-[1.55] transition-colors hover:text-white hover:underline"
-                    >
-                      {text.pages[link.page]}
-                    </Link>
+                    {link.file ? (
+                      // a file or mailto: a plain link (next/link would prefetch it as a page)
+                      <a
+                        href={link.href}
+                        download={link.href.endsWith(".docx") ? "contoh-surat-izin-pinjamtedi.docx" : undefined}
+                        className="text-[16px] font-normal leading-[1.55] transition-colors hover:text-white hover:underline"
+                      >
+                        {text.pages[link.page]}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-[16px] font-normal leading-[1.55] transition-colors hover:text-white hover:underline"
+                      >
+                        {text.pages[link.page]}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -235,7 +250,7 @@ export default function Footer() {
           {isHome && (
             <button
               type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              onClick={() => (lenis ? lenis.scrollTo(0) : window.scrollTo({ top: 0, behavior: "smooth" }))}
               className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-secondary px-4 py-[10px] text-[16px] font-extrabold leading-[1.3] text-on-secondary transition-[filter] hover:brightness-95"
             >
               {t.backToTop}

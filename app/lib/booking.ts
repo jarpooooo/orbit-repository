@@ -94,7 +94,8 @@ export type ScheduleErrorKey =
   | "sessionRequired"
   | "sessionFull"
   | "quantityRange"
-  | "outOfRange";
+  | "outOfRange"
+  | "sessionPast";
 
 /** Pick-up / return hours of "daily" loans (Figma 2.2: pick up any time 08.00–16.00, return before 16.00). */
 export const PICKUP_HOURS = "08.00–16.00";
@@ -153,6 +154,8 @@ export function validateSelection(s: BookingSelection, f: Facility, now: Date = 
   if (isClosedDay(s.date)) return "unavailableDay";
   const slot = getSessionAvailability(f.id, s.date).find((x) => x.sessionId === s.sessionId);
   if (!slot) return "sessionRequired";
+  const day = parseIsoDate(s.date)!;
+  if (isSessionPast(day, s.sessionId, now)) return "sessionPast";
   if (slot.status === "full") return "sessionFull";
   if (!Number.isInteger(s.participants) || s.participants < 1 || s.participants > maxQuantity(f)) return "quantityRange";
   return null;
@@ -185,11 +188,26 @@ export function parseSelectionQuery(params: URLSearchParams, f: Facility): Booki
   return validateSelection(selection, f) ? null : selection;
 }
 
-/** Like parseSelectionQuery, plus a valid ?kode=. */
+/**
+ * The submitted request on the Summary: a valid ?kode= plus a selection of the right SHAPE (real dates, return
+ * not before pick-up, session index, positive quantity). It is not checked against today or the availability
+ * again: the request was valid when it was sent, and the Summary must still open tomorrow or after 16.00.
+ */
 export function parseSubmittedQuery(params: URLSearchParams, f: Facility) {
   const code = params.get("kode") ?? "";
-  const selection = parseSelectionQuery(params, f);
-  return selection && REQUEST_CODE_PATTERN.test(code) ? { selection, code } : null;
+  if (!REQUEST_CODE_PATTERN.test(code)) return null;
+  const quantity = Number(params.get("jumlah"));
+  if (!Number.isInteger(quantity) || quantity < 1) return null;
+  if (bookingMode(f) === "daily") {
+    const pickupDate = params.get("ambil") ?? "";
+    const returnDate = params.get("kembali") ?? "";
+    if (!parseIsoDate(pickupDate) || !parseIsoDate(returnDate) || returnDate < pickupDate) return null;
+    return { code, selection: { mode: "daily", pickupDate, returnDate, units: quantity } as BookingSelection };
+  }
+  const date = params.get("hari") ?? "";
+  const sessionId = Number(params.get("sesi") ?? "-1");
+  if (!parseIsoDate(date) || !Number.isInteger(sessionId) || sessionId < 0 || sessionId >= SESSIONS.length) return null;
+  return { code, selection: { mode: "session", date, sessionId, participants: quantity } as BookingSelection };
 }
 
 /** First day of the selection (pick-up day / session day), yyyy-mm-dd. */

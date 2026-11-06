@@ -19,7 +19,7 @@ const FIELD_BASE =
 
 /** Class for inputs and selects. bad = error state. */
 export const fieldClass = (bad?: boolean) =>
-  `${FIELD_BASE} ${bad ? "border-status-orange-fg bg-status-orange-bg" : "border-line-strong bg-surface-field"}`;
+  `${FIELD_BASE} ${bad ? "border-status-attention-fg bg-status-attention-bg" : "border-line-strong bg-surface-field"}`;
 
 export const BUTTON =
   "flex w-full items-center justify-center gap-[10px] rounded-[14px] border-2 border-line-strong px-[22px] text-[15px] font-extrabold leading-[normal] shadow-[0_4px_0_0_var(--color-shadow)] transition-transform active:translate-y-[2px] active:shadow-[0_2px_0_0_var(--color-shadow)]";
@@ -32,7 +32,7 @@ export function AuthField({ id, label, hint, error, children }: { id: string; la
       <label htmlFor={id} className="text-[13px] font-extrabold text-ink">{label}</label>
       {children}
       {error ? (
-        <p id={`${id}-err`} role="alert" className="text-[12px] font-bold text-status-orange-fg">⚠ {error}</p>
+        <p id={`${id}-err`} role="alert" className="text-[12px] font-bold text-status-attention-fg">⚠ {error}</p>
       ) : hint ? (
         <p id={`${id}-hint`} className="text-[12px] text-ink-muted">{hint}</p>
       ) : null}
@@ -103,12 +103,12 @@ export function AuthLayout({ titleId, panel, children }: { titleId: string; pane
               <Photo src={PHOTOS.esp32} placeholder={t.photoPlaceholder} className="h-[130px] w-[170px]" />
               <p className="mt-2 text-[13px] font-extrabold leading-[normal] text-on-accent">{t.photoEsp32}</p>
             </div>
-            <div className="absolute left-[222px] top-[10px] rotate-5 rounded-[18px] border-2 border-on-accent bg-[var(--color-mint,#2ee6b0)] p-[10px] shadow-[5px_5px_0_0_var(--color-on-accent)]">
+            <div className="absolute left-[222px] top-[10px] rotate-5 rounded-[18px] border-2 border-on-accent bg-mint-300 p-[10px] shadow-[5px_5px_0_0_var(--color-on-accent)]">
               <Photo src={PHOTOS.room} placeholder={t.photoPlaceholder} className="h-[130px] w-[190px]" />
               <p className="mt-2 text-[13px] font-extrabold leading-[normal] text-on-accent">{t.photoRoom}</p>
             </div>
             <div className="absolute left-[150px] top-[205px] rotate-2 flex items-center gap-2 rounded-[14px] border-2 border-on-accent bg-white px-3 py-2 shadow-[3px_3px_0_0_var(--color-on-accent)]">
-              <span className="size-[10px] rounded-full bg-[var(--color-mint,#2ee6b0)]" />
+              <span className="size-[10px] rounded-full bg-mint-300" />
               <span className="whitespace-nowrap text-[12px] font-extrabold leading-[normal] text-on-accent">{t.sticker}</span>
             </div>
           </div>

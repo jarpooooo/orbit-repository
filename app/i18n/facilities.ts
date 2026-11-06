@@ -19,6 +19,7 @@ import {
   type FacilityUnit,
   type LocationKey,
   type PermissionLevel,
+  type Requirement,
   type RoomGroup,
   type SubcategoryKey,
 } from "@/app/data/facilities";
@@ -31,10 +32,28 @@ const id = {
   statuses: { verification: "Verifikasi", letter: "Perlu surat", borrowed: "Sedang dipinjam", direct: "Langsung" } as Record<AvailabilityStatus, string>,
   /** "Catatan izin" box on the Detail page (text exactly as in Figma). */
   permissionNotes: {
-    verification: { title: "Verifikasi.", text: "Perlu dicek petugas laboratorium, biasanya kurang dari 1 jam kerja." },
-    letter: { title: "Perlu surat.", text: "Wajib melampirkan surat izin bertanda tangan dosen pembimbing." },
-    direct: { title: "Langsung.", text: "Langsung disetujui sistem. Tinggal ambil di loket." },
+    verification: { title: "Verifikasi admin.", text: "Isi form dan titipkan KTM di tempat pengelola. Pengajuan dicek laboran/TU dulu." },
+    letter: { title: "Butuh surat.", text: "Isi form, titipkan KTM, dan lampirkan surat bertanda tangan. Disetujui penanggung jawab fasilitas." },
+    direct: { title: "Langsung.", text: "Isi form singkat, langsung disetujui sistem. Ambil di loket dengan menunjukkan KTM." },
   } as Record<PermissionLevel, { title: string; text: string }>,
+  /** checklist per level (LEVEL_REQUIREMENTS in app/data/facilities.ts) */
+  requirementsTitle: "Syarat meminjam",
+  requirements: {
+    shortForm: "Isi form singkat: nama, NIM, dan prodi",
+    form: "Isi form beserta keperluan peminjaman",
+    showStudentId: "Tunjukkan KTM saat mengambil",
+    depositStudentId: "Titipkan KTM di tempat pengelola saat mengambil",
+    signedLetter: "Isi surat izin, minta tanda tangan, lalu unggah PDF-nya",
+    autoApproved: "Disetujui otomatis: status awal “Siap diambil”",
+    staffCheck: "Dicek laboran/TU: status awal “Menunggu verifikasi”",
+    ownerApproval: "Di-acc penanggung jawab fasilitas: status awal “Menunggu verifikasi”",
+  } as Record<Requirement, string>,
+  /** one line per level on the catalog cards */
+  requirementsShort: {
+    direct: "Form singkat · bawa KTM",
+    verification: "Form · titip KTM · dicek laboran/TU",
+    letter: "Form · titip KTM · surat · di-acc penanggung jawab",
+  } as Record<PermissionLevel, string>,
   subcategories: {
     mikrokontroler: "Mikro-kontroler",
     "perangkat-jaringan": "Perangkat jaringan",
@@ -59,7 +78,7 @@ const id = {
   /** [dummy] loan length per category */
   maxDuration: { hardware: "3 hari", room: "2 jam per sesi", multimedia: "2 hari", logistics: "1 hari" } as Record<FacilityCategory, string>,
   specLabels: { location: "Lokasi", stock: "Stok", capacity: "Kapasitas", rooms: "Jumlah ruangan", maxDuration: "Durasi maks.", deposit: "Jaminan" },
-  deposit: { none: "Tanpa jaminan", studentId: "KTM ditahan" },
+  deposit: { none: "Tanpa jaminan, cukup tunjukkan KTM", studentId: "KTM dititipkan ke pengelola" },
   available: (quantity: string) => `${quantity} tersedia`,
   capacity: (quantity: string) => `Kapasitas ${quantity}`,
   rooms: (n: number) => `${n} ruangan`,
@@ -113,9 +132,25 @@ const id = {
 const en: typeof id = {
   statuses: { verification: "Verification", letter: "Letter required", borrowed: "On loan", direct: "Direct" },
   permissionNotes: {
-    verification: { title: "Verification.", text: "Checked by the lab staff, usually within 1 working hour." },
-    letter: { title: "Letter required.", text: "A permission letter signed by your supervisor is required." },
-    direct: { title: "Direct.", text: "Approved by the system right away. Just pick it up at the counter." },
+    verification: { title: "Admin verification.", text: "Fill in the form and leave your student ID with the manager. Lab staff / the admin office check the request first." },
+    letter: { title: "Letter required.", text: "Fill in the form, leave your student ID, and attach a signed letter. Approved by the person in charge of the facility." },
+    direct: { title: "Direct.", text: "Fill in a short form and the system approves it right away. Pick it up at the counter with your student ID." },
+  },
+  requirementsTitle: "Requirements",
+  requirements: {
+    shortForm: "Fill in a short form: name, student ID, study program",
+    form: "Fill in the form with the purpose of the loan",
+    showStudentId: "Show your student ID when you pick it up",
+    depositStudentId: "Leave your student ID with the manager when you pick it up",
+    signedLetter: "Fill in the permission letter, get it signed, then upload the PDF",
+    autoApproved: "Approved automatically: starts as “Ready for pickup”",
+    staffCheck: "Checked by lab staff / the admin office: starts as “Awaiting verification”",
+    ownerApproval: "Approved by the person in charge: starts as “Awaiting verification”",
+  },
+  requirementsShort: {
+    direct: "Short form · bring your student ID",
+    verification: "Form · leave student ID · staff check",
+    letter: "Form · leave student ID · letter · approval",
   },
   subcategories: {
     mikrokontroler: "Micro-controllers",
@@ -139,7 +174,7 @@ const en: typeof id = {
   },
   maxDuration: { hardware: "3 days", room: "2 hours per session", multimedia: "2 days", logistics: "1 day" },
   specLabels: { location: "Location", stock: "Stock", capacity: "Capacity", rooms: "Rooms", maxDuration: "Max. duration", deposit: "Deposit" },
-  deposit: { none: "No deposit", studentId: "Student ID held" },
+  deposit: { none: "No deposit, just show your student ID", studentId: "Student ID left with the manager" },
   available: (quantity) => `${quantity} available`,
   capacity: (quantity) => `Seats ${quantity}`,
   rooms: (n) => `${n} ${n === 1 ? "room" : "rooms"}`,
@@ -252,7 +287,7 @@ export function localizeFacility(f: Facility, locale: Locale): FacilityView {
     specs.push([l.stock, t.quantity(f.units, unit)]);
   }
   specs.push([l.maxDuration, t.maxDuration[f.category]]);
-  if (!isRoom) specs.push([l.deposit, f.level === "direct" ? t.deposit.none : t.deposit.studentId]);
+  specs.push([l.deposit, f.level === "direct" ? t.deposit.none : t.deposit.studentId]);
 
   return { ...f, ...facilityCopy(f, t), location, status, unit, maxQuantity: max, availability, meta, specs };
 }
