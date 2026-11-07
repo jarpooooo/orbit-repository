@@ -9,7 +9,7 @@
     "lint": "eslint",
     "emulators": "node scripts/emulators.mjs",
     "seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-facilities.mjs",
-    "deploy:firebase": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/deploy-firebase.mjs",
+    "deploy:firebase": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/deploy-firebase.mjs",
     "photos": "node --env-file=.env.local scripts/upload-facility-photos.mjs"
   },
   "dependencies": {
