@@ -91,7 +91,7 @@ const id = {
     socialLabel: "Media sosial",
     linksLabel: "Tautan footer",
     columns: { explore: "Jelajahi", borrowing: "Peminjaman", help: "Bantuan" } as Record<FooterColumnKey, string>,
-    copyright: "© 2026 PinjamTEDI. Prototipe untuk ORBIT Repository 2026, Branch Developer. Semua data bersifat simulasi.",
+    copyright: "© 2026 PinjamTEDI. Departemen Teknik Elektro dan Informatika, Sekolah Vokasi Universitas Gadjah Mada.",
     backToTop: "Kembali ke atas",
   },
   /** app/not-found.tsx */
@@ -171,7 +171,7 @@ const en: typeof id = {
     socialLabel: "Social media",
     linksLabel: "Footer links",
     columns: { explore: "Explore", borrowing: "Borrowing", help: "Help" },
-    copyright: "© 2026 PinjamTEDI. Prototype for ORBIT Repository 2026, Branch Developer. All data is simulated.",
+    copyright: "© 2026 PinjamTEDI. Department of Electrical Engineering and Informatics, Vocational College, Universitas Gadjah Mada.",
     backToTop: "Back to top",
   },
   notFound: {
