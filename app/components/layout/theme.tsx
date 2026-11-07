@@ -18,7 +18,9 @@ const CHANGE_EVENT = "pinjamtedi:theme-change";
 const isTheme = (value: unknown): value is Theme => value === "light" || value === "dark";
 
 /** Runs in <head> before paint. Keep it tiny and dependency-free. */
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}})()`;
+// Dark mode is switched off (no switch in the settings menu): the page is always light, and a dark choice
+// saved earlier is cleared so nobody stays stuck in it.
+const THEME_SCRIPT = `(function(){try{localStorage.removeItem("${STORAGE_KEY}")}catch(e){}})()`;
 
 /**
  * Inline script for the root layout's <head>.

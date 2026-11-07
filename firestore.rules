@@ -2,7 +2,7 @@ rules_version = '2';
 
 // PinjamTEDI Firestore rules. Everything is closed unless a block below opens it.
 // Roles follow the UGM email domain (same rule as app/lib/auth.ts):
-//   @mail.ugm.ac.id → student     @ugm.ac.id → staff
+//   @mail.ugm.ac.id → student     @ugm.ac.id → staff     admin@pinjamtedi.web.app → admin (ADMIN_EMAILS in auth.ts)
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -11,6 +11,9 @@ service cloud.firestore {
     }
     function isStudent() {
       return signedIn() && request.auth.token.email.lower().matches('.*@mail[.]ugm[.]ac[.]id$');
+    }
+    function isAdmin() {
+      return signedIn() && request.auth.token.email.lower() in ['admin@pinjamtedi.web.app'];
     }
     function shortString(value, max) {
       return value is string && value.size() > 0 && value.size() <= max;
@@ -103,7 +106,7 @@ service cloud.firestore {
           && d.updatedAt == request.time;
       }
 
-      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
       allow create: if isUgm() && validNewRequest();
       allow update: if signedIn()
         && resource.data.uid == request.auth.uid
@@ -111,6 +114,12 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt', 'updatedAt'])
         && request.resource.data.status == 'cancelled'
         && request.resource.data.cancelledAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      // Admin: change the status of a request (approve / reject / ready for pickup); nothing else, and never revive a cancelled one.
+      allow update: if isAdmin()
+        && resource.data.status != 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        && request.resource.data.status in ['verifying', 'readyPickup', 'approved', 'rejected']
         && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }

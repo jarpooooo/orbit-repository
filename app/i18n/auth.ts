@@ -4,16 +4,14 @@
 import type { Locale } from "./locale";
 
 const id = {
-  photoEsp32: "Kit ESP32",
-  photoRoom: "Ruang Sidang",
-  sticker: "PJM-1026-0014 · Disetujui",
+  photoEsp32: "ESP32",
+  photoRoom: "Ruang Diskusi",
   photoPlaceholder: "Foto menyusul",
 };
 
 const en: typeof id = {
-  photoEsp32: "ESP32 Kit",
-  photoRoom: "Meeting Room",
-  sticker: "PJM-1026-0014 · Approved",
+  photoEsp32: "ESP32",
+  photoRoom: "Discussion Room",
   photoPlaceholder: "Photo coming soon",
 };
 

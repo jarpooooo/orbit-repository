@@ -8,11 +8,10 @@
 "use client";
 
 import Link from "next/link";
-import { CATEGORY_STYLE } from "@/app/design/category-style";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
 import CategoryBadge from "@/app/components/ui/category-badge";
-import FacilityIllustration from "@/app/components/ui/facility-illustration";
+import FacilityPhotos from "./facility-photos";
 import LevelRequirements from "./level-requirements";
 import StatusBadge from "@/app/components/ui/status-badge";
 import { bookingMode } from "@/app/data/facilities";
@@ -44,12 +43,8 @@ export default function FacilityDetail({ slug }: { slug: string }) {
         <Stepper active={2} mode={bookingMode(original)} />
 
         <div className="mt-1 flex flex-col gap-8 lg:flex-row xl:gap-11">
-          {/* Illustration panel */}
-          <div
-            className={`flex h-[260px] w-full shrink-0 items-center justify-center rounded-[22px] border-2 border-line-strong p-8 shadow-[5px_5px_0_0_var(--color-shadow-accent)] sm:h-[340px] sm:shadow-[7px_7px_0_0_var(--color-shadow-accent)] lg:h-[400px] lg:w-[420px] xl:w-[520px] ${CATEGORY_STYLE[f.category].panel}`}
-          >
-            <FacilityIllustration id={f.illustration} size={260} preload className="size-[180px] sm:size-[240px] xl:size-[260px]" />
-          </div>
+          {/* Photos from Supabase Storage; the illustration is the fallback */}
+          <FacilityPhotos facility={f} alt={f.name} />
 
           {/* Info */}
           <div className="flex min-w-0 flex-1 flex-col items-start gap-[14px]">

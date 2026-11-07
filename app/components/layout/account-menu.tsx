@@ -92,6 +92,15 @@ export default function AccountMenu() {
             </span>
             {!session.emailVerified && <span className="mt-1 text-[12px] font-bold text-status-attention-fg">{t.unverified}</span>}
           </div>
+          {session.role === "admin" && (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="rounded-[12px] border-2 border-line-strong bg-surface px-3 py-2 text-[14px] font-extrabold text-ink hover:bg-surface-warm"
+            >
+              {t.adminPanel}
+            </Link>
+          )}
           {/* <Link
             href="/my-requests"
             onClick={() => setOpen(false)}

@@ -66,14 +66,14 @@ export default function HowToBorrowContent() {
           </h2>
           <ol className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {stepNames.map((name, i) => (
-              <li key={name} className="flex flex-col items-start gap-[10px] rounded-[20px] border-2 border-line-inverse-on-page bg-surface-inverse-raised p-6">
+              <li key={name} className="flex min-w-0 flex-col items-start gap-[10px] rounded-[20px] border-2 border-line-inverse-on-page bg-surface-inverse-raised p-6">
                 <span
                   className={`font-display flex size-12 items-center justify-center rounded-[14px] text-[24px] leading-[1.05] text-on-accent ${STEP_TONES[i]}`}
                 >
                   {i + 1}
                 </span>
                 <h3 className="text-[20px] font-bold leading-[1.3] text-white">{name}</h3>
-                <p className="text-[16px] leading-[1.55] text-ink-on-inverse">{t.stepTexts[i]}</p>
+                <p className="w-full break-words text-[16px] leading-[1.55] text-ink-on-inverse">{t.stepTexts[i]}</p>
               </li>
             ))}
           </ol>

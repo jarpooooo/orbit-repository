@@ -36,6 +36,7 @@ import { useLiveFacility } from "@/app/lib/facility-store";
 import { useSession } from "@/app/lib/auth";
 import { loadProfile, submitRequest } from "@/app/lib/requests";
 import { NIM_PATTERN, normalizeNim } from "@/app/lib/nim";
+import { uploadLetter } from "@/app/lib/supabase";
 
 const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MB
 
@@ -258,6 +259,12 @@ export default function RequestForm({ facility: seed }: { facility: Facility }) 
     if (focusFirstError(nextErrors)) return;
 
     setSubmitting(true);
+    // the signed letter goes to Supabase Storage first; the request only keeps its file name
+    if (needsLetter && letterFile && !(await uploadLetter(letterFile, uid ?? "", code))) {
+      setSubmitting(false);
+      setSubmitError("submitFailed");
+      return;
+    }
     const result = await submitRequest(
       {
         facility: original,

@@ -8,7 +8,7 @@
 // firebase/firestore only when a profile is saved. Until then the state is "loading".
 //
 // Who may sign in: UGM accounts only. The role follows the email domain:
-//   @mail.ugm.ac.id → "student"     @ugm.ac.id → "staff"     anything else → signed out again
+//   @mail.ugm.ac.id → "student"     @ugm.ac.id → "staff"     ADMIN_EMAILS → "admin"     anything else → signed out again
 // The same rule belongs in firestore.rules later (request.auth.token.email), so the role cannot be faked.
 //
 // Read the state anywhere with useAuth() / useSession(). Errors are returned as AuthErrorKey (text in
@@ -22,7 +22,10 @@ import type { User } from "firebase/auth";
 /** firebase/auth + the app's Auth instance, loaded once on first use. */
 const loadAuth = () => Promise.all([import("firebase/auth"), import("./firebase-auth")]).then(([sdk, { auth }]) => ({ ...sdk, auth }));
 
-export type SessionRole = "student" | "staff";
+export type SessionRole = "student" | "staff" | "admin";
+
+/** Admin accounts (any domain). Must match isAdmin() in firestore.rules. */
+export const ADMIN_EMAILS: readonly string[] = ["admin@pinjamtedi.web.app"];
 export type Session = { uid: string; role: SessionRole; name: string; email: string; photoUrl: string | null; emailVerified: boolean };
 
 export type AuthState = { status: "loading" } | { status: "signed-out" } | { status: "signed-in"; session: Session };
@@ -44,6 +47,7 @@ const ROLE_BY_DOMAIN: readonly (readonly [domain: string, role: SessionRole])[] 
 ];
 
 export function roleForEmail(email: string | null | undefined): SessionRole | null {
+  if (email && ADMIN_EMAILS.includes(email.toLowerCase())) return "admin";
   const domain = email?.toLowerCase().split("@")[1];
   return ROLE_BY_DOMAIN.find(([d]) => d === domain)?.[1] ?? null;
 }
@@ -239,14 +243,16 @@ export const signOut = async () => {
  * The password is public (it is in the bundle), so a demo account must never get more rights than a student.
  */
 export const DEMO_ENABLED = process.env.NEXT_PUBLIC_USE_EMULATORS === "true" || process.env.NEXT_PUBLIC_DEMO_LOGIN === "true";
-const DEMO_ACCOUNTS: Record<SessionRole, { email: string; name: string }> = {
+/** Demo accounts never include "admin". */
+export type DemoRole = Exclude<SessionRole, "admin">;
+const DEMO_ACCOUNTS: Record<DemoRole, { email: string; name: string }> = {
   student: { email: "demo.mahasiswa@mail.ugm.ac.id", name: "Mahasiswa Demo" },
   staff: { email: "demo.petugas@ugm.ac.id", name: "Petugas Demo" },
 };
 const DEMO_PASSWORD = "demo1234";
 
 /** Signs in as a demo account, creating it on the emulator the first time. */
-export function signInDemo(role: SessionRole) {
+export function signInDemo(role: DemoRole) {
   return run(async () => {
     if (!DEMO_ENABLED) throw domainError();
     const { email, name } = DEMO_ACCOUNTS[role];

@@ -9,9 +9,10 @@ const id = {
   /** account button label when signed in */
   account: (name: string) => `Akun ${name}`,
   signOut: "Keluar",
-  roles: { student: "Mahasiswa", staff: "Petugas lab" } as Record<SessionRole, string>,
+  roles: { student: "Mahasiswa", staff: "Petugas lab", admin: "Admin" } as Record<SessionRole, string>,
   unverified: "Email belum diverifikasi",
   myRequests: "Pengajuan saya",
+  adminPanel: "Panel admin",
   errors: {
     wrongCredentials: "Email atau kata sandi salah.",
     emailInUse: "Email ini sudah terdaftar. Silakan masuk.",
@@ -28,9 +29,10 @@ const en: typeof id = {
   signIn: "Sign in",
   account: (name) => `${name}'s account`,
   signOut: "Sign out",
-  roles: { student: "Student", staff: "Lab staff" },
+  roles: { student: "Student", staff: "Lab staff", admin: "Admin" },
   unverified: "Email not verified yet",
   myRequests: "My requests",
+  adminPanel: "Admin panel",
   errors: {
     wrongCredentials: "Wrong email or password.",
     emailInUse: "This email is already registered. Please sign in.",

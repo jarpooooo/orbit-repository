@@ -1,7 +1,7 @@
 // app/components/layout/settings-menu.tsx
 //
 // Settings button for the navbar (gear) with a dropdown.
-// Rows: Keyboard navigation, Dark mode (switches), Language (ID / EN choice).
+// Rows: Keyboard navigation (switch), Language (ID / EN choice). The dark mode switch was removed.
 // Always mounted inside the navbar, so keyboard shortcuts keep working while the dropdown is closed.
 // Text: LAYOUT_TEXT.settings (app/i18n/site-layout.ts).
 
@@ -14,7 +14,6 @@ import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import type { Locale } from "@/app/i18n/locale";
 import { KEYBOARD_FOCUS_CSS, KeyboardHelpDialog, useKeyboardNav } from "./keyboard-nav";
 import { useLocale } from "./language";
-import { useTheme } from "./theme";
 
 /** Language options: short code on the button, full name for screen readers (each in its own language). */
 const LANGUAGE_OPTIONS: readonly { locale: Locale; code: string; name: string }[] = [
@@ -105,7 +104,6 @@ export default function SettingsMenu() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const keyboard = useKeyboardNav();
-  const { theme, setTheme } = useTheme();
   const t = LAYOUT_TEXT[useLocale().locale].settings;
 
   // close on navigation
@@ -170,12 +168,6 @@ export default function SettingsMenu() {
                 </button>
               ) : null
             }
-          />
-          <SwitchRow
-            label={t.darkMode.label}
-            hint={t.darkMode.hint}
-            checked={theme === "dark"}
-            onChange={() => setTheme(theme === "dark" ? "light" : "dark")}
           />
           <LanguageRow label={t.language.label} hint={t.language.hint} />
         </div>

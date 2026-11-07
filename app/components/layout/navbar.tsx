@@ -146,17 +146,18 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop menu */}
-          <ul className="hidden items-center gap-4 whitespace-nowrap text-[16px] font-bold leading-[1.3] text-ink xl:flex">
+          <ul className="hidden items-center gap-1 whitespace-nowrap 2xl:gap-4 text-[16px] font-bold leading-[1.3] text-ink xl:flex">
             {NAV_LINKS.map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}
                   aria-current={isActive(l.href) ? "page" : undefined}
                   className={[
-                    "inline-block rounded-full border-2 px-[10px] py-[4px] transition-colors",
+                    // current page: the yellow pill. Other links: a black underline on hover / keyboard focus.
+                    "inline-block border-2 px-[10px] py-[4px] transition-colors",
                     isActive(l.href)
-                      ? "border-line-strong bg-brand-secondary text-on-secondary shadow-[0_3px_0_0_var(--color-shadow)]"
-                      : "border-transparent hover:bg-brand-secondary/40",
+                      ? "rounded-full border-line-strong bg-brand-secondary text-on-secondary shadow-[0_3px_0_0_var(--color-shadow)]"
+                      : "relative border-transparent after:absolute after:inset-x-[10px] after:-bottom-[2px] after:h-[3px] after:rounded-full after:bg-line-strong after:opacity-0 after:transition-opacity hover:after:opacity-100 focus-visible:after:opacity-100",
                   ].join(" ")}
                 >
                   {text.pages[l.page]}
@@ -167,7 +168,7 @@ export default function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 sm:gap-[10px]">
-            <SearchField query={query} onQueryChange={setQuery} onSubmit={onSearch} className="hidden w-[230px] xl:flex" />
+            <SearchField query={query} onQueryChange={setQuery} onSubmit={onSearch} className="hidden w-[170px] xl:flex 2xl:w-[230px]" />
 
             <SettingsMenu />
 

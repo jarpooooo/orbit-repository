@@ -2,17 +2,19 @@
 //
 // Shared pieces of the login and register pages:
 // AuthLayout (form card + navy welcome panel with the photo collage), AuthField, GoogleButton, OrDivider.
-// Images are placeholders for now. Put the file path in PHOTOS when the photos exist.
+// The two collage photos come from Supabase Storage (facility-images). null = placeholder box.
 
 "use client";
 
-import Image from "next/image";
 import { Image as ImageIcon } from "lucide-react";
 import { useText } from "@/app/components/layout/language";
 import { AUTH_TEXT } from "@/app/i18n/auth";
+import { publicUrl, PHOTO_BUCKET } from "@/app/lib/supabase";
 
-/** e.g. "/img/foto/kit-esp32.png". null = placeholder box. */
-const PHOTOS: { esp32: string | null; room: string | null } = { esp32: null, room: null };
+const PHOTOS: { esp32: string | null; room: string | null } = {
+  esp32: publicUrl(PHOTO_BUCKET, "esp32/3.webp"),
+  room: publicUrl(PHOTO_BUCKET, "ruang-diskusi/2.webp"),
+};
 
 const FIELD_BASE =
   "h-12 w-full rounded-[12px] border-2 px-[14px] text-[14px] text-ink outline-none placeholder:text-ink-placeholder focus:border-brand-interactive focus:shadow-[0_0_0_3px_var(--color-focus-halo)]";
@@ -64,7 +66,8 @@ function Photo({ src, placeholder, className }: { src: string | null; placeholde
   return (
     <div className={`relative overflow-hidden rounded-[12px] border-2 border-on-accent bg-surface-warm ${className}`}>
       {src ? (
-        <Image src={src} alt="" fill sizes="190px" className="object-cover" />
+        // eslint-disable-next-line @next/next/no-img-element -- remote Supabase photo
+        <img src={src} alt="" className="size-full object-cover" />
       ) : (
         <span className="flex size-full flex-col items-center justify-center gap-1 text-ink-muted">
           <ImageIcon size={26} strokeWidth={2} aria-hidden />
@@ -98,7 +101,7 @@ export function AuthLayout({ titleId, panel, children }: { titleId: string; pane
           <p className="text-[15px] leading-[1.5] text-ink-on-inverse/80">{panel.body}</p>
 
           {/* Photo collage: fixed 448×250 like Figma, shown from sm up */}
-          <div aria-hidden className="relative hidden h-[250px] w-[448px] max-w-full sm:block">
+          <div aria-hidden className="relative hidden h-[220px] w-[448px] max-w-full sm:block">
             <div className="absolute left-[10px] top-[16px] -rotate-4 rounded-[18px] border-2 border-on-accent bg-brand-secondary p-[10px] shadow-[5px_5px_0_0_var(--color-on-accent)]">
               <Photo src={PHOTOS.esp32} placeholder={t.photoPlaceholder} className="h-[130px] w-[170px]" />
               <p className="mt-2 text-[13px] font-extrabold leading-[normal] text-on-accent">{t.photoEsp32}</p>
@@ -106,10 +109,6 @@ export function AuthLayout({ titleId, panel, children }: { titleId: string; pane
             <div className="absolute left-[222px] top-[10px] rotate-5 rounded-[18px] border-2 border-on-accent bg-mint-300 p-[10px] shadow-[5px_5px_0_0_var(--color-on-accent)]">
               <Photo src={PHOTOS.room} placeholder={t.photoPlaceholder} className="h-[130px] w-[190px]" />
               <p className="mt-2 text-[13px] font-extrabold leading-[normal] text-on-accent">{t.photoRoom}</p>
-            </div>
-            <div className="absolute left-[150px] top-[205px] rotate-2 flex items-center gap-2 rounded-[14px] border-2 border-on-accent bg-white px-3 py-2 shadow-[3px_3px_0_0_var(--color-on-accent)]">
-              <span className="size-[10px] rounded-full bg-mint-300" />
-              <span className="whitespace-nowrap text-[12px] font-extrabold leading-[normal] text-on-accent">{t.sticker}</span>
             </div>
           </div>
         </aside>

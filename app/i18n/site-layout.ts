@@ -12,13 +12,12 @@ export type PageKey =
   | "roomSchedule"
   | "howToBorrow"
   | "myRequests"
-  | "history"
-  | "returns"
+  | "mostBorrowed"
+  | "rules"
   | "notifications"
   | "guide"
   | "sampleLetter"
-  | "faq"
-  | "reportIssue";
+  | "helpDesk";
 export type FooterColumnKey = "explore" | "borrowing" | "help";
 export type SampleNotificationKey = "n1" | "n2" | "n3";
 
@@ -29,13 +28,12 @@ const id = {
     roomSchedule: "Cek Ketersediaan",
     howToBorrow: "Cara Pinjam",
     myRequests: "Pengajuan Saya",
-    history: "Riwayat Peminjaman",
-    returns: "Pengembalian",
+    mostBorrowed: "Paling Sering Dipinjam",
+    rules: "Ketentuan Peminjaman",
     notifications: "Notifikasi",
     guide: "Panduan Peminjaman",
     sampleLetter: "Contoh Surat",
-    faq: "Pertanyaan Umum",
-    reportIssue: "Lapor Kendala",
+    helpDesk: "Hubungi Help Desk",
   } as Record<PageKey, string>,
 
   navbar: {
@@ -64,8 +62,8 @@ const id = {
     bellLabel: (unread: number) => (unread ? `Notifikasi, ${unread} belum dibaca` : "Notifikasi"),
     // sample data (text exactly as in Figma); replace with API data later
     samples: {
-      n1: { title: "Menunggu verifikasi: Kit ESP32", info: "PJM-1026-0014 · baru saja" },
-      n2: { title: "Kit ESP32 siap diambil", info: "PJM-1024-0012 · Senin 09.00" },
+      n1: { title: "Menunggu verifikasi: ESP32", info: "PJM-1026-0014 · baru saja" },
+      n2: { title: "ESP32 siap diambil", info: "PJM-1024-0012 · Senin 09.00" },
       n3: { title: "Pengingat pengembalian", info: "Converter HDMI · besok 16.00" },
     } as Record<SampleNotificationKey, { title: string; info: string }>,
   },
@@ -86,9 +84,8 @@ const id = {
 
   footer: {
     tagline: ["Peminjaman alat dan ruang", "Departemen Teknik Elektro dan Informatika", "Sekolah Vokasi Universitas Gadjah Mada"],
-    // placeholders exactly as in Figma; fill in before release
-    hours: "[Jam layanan peminjaman]",
-    helpdesk: "Help desk: [nomor kontak]",
+    hours: "Layanan peminjaman: Senin–Sabtu, 08.00–17.00 WIB",
+    helpdesk: "Help desk: 0813-2981-4848",
     socialLabel: "Media sosial",
     linksLabel: "Tautan footer",
     columns: { explore: "Jelajahi", borrowing: "Peminjaman", help: "Bantuan" } as Record<FooterColumnKey, string>,
@@ -112,13 +109,12 @@ const en: typeof id = {
     roomSchedule: "Check Availability",
     howToBorrow: "How to Borrow",
     myRequests: "My Requests",
-    history: "Borrowing History",
-    returns: "Returns",
+    mostBorrowed: "Most Borrowed",
+    rules: "Borrowing Rules",
     notifications: "Notifications",
     guide: "Borrowing Guide",
     sampleLetter: "Sample Letter",
-    faq: "FAQ",
-    reportIssue: "Report a Problem",
+    helpDesk: "Contact Help Desk",
   },
 
   navbar: {
@@ -145,8 +141,8 @@ const en: typeof id = {
     unread: "Unread. ",
     bellLabel: (unread: number) => (unread ? `Notifications, ${unread} unread` : "Notifications"),
     samples: {
-      n1: { title: "Awaiting verification: ESP32 Kit", info: "PJM-1026-0014 · just now" },
-      n2: { title: "ESP32 Kit ready for pickup", info: "PJM-1024-0012 · Monday 09:00" },
+      n1: { title: "Awaiting verification: ESP32", info: "PJM-1026-0014 · just now" },
+      n2: { title: "ESP32 ready for pickup", info: "PJM-1024-0012 · Monday 09:00" },
       n3: { title: "Return reminder", info: "HDMI Converter · tomorrow 16:00" },
     },
   },
@@ -167,8 +163,8 @@ const en: typeof id = {
 
   footer: {
     tagline: ["Tool and room borrowing", "Department of Electrical Engineering and Informatics", "Vocational College, Universitas Gadjah Mada"],
-    hours: "[Borrowing service hours]",
-    helpdesk: "Help desk: [contact number]",
+    hours: "Borrowing service: Monday–Saturday, 08.00–17.00 WIB",
+    helpdesk: "Help desk: 0813-2981-4848",
     socialLabel: "Social media",
     linksLabel: "Footer links",
     columns: { explore: "Explore", borrowing: "Borrowing", help: "Help" },

@@ -4,7 +4,7 @@
 
 import type { Dictionary } from "./locale";
 
-export type RequestStatusKey = "readyPickup" | "verifying" | "approved" | "cancelled";
+export type RequestStatusKey = "readyPickup" | "verifying" | "approved" | "rejected" | "cancelled";
 
 const id = {
   title: "Pengajuan saya",
@@ -13,6 +13,7 @@ const id = {
     readyPickup: "Siap diambil",
     verifying: "Menunggu verifikasi",
     approved: "Disetujui",
+    rejected: "Ditolak",
     cancelled: "Dibatalkan",
   } as Record<RequestStatusKey, string>,
   cancel: "Batalkan",
@@ -34,6 +35,7 @@ const en: typeof id = {
     readyPickup: "Ready for pickup",
     verifying: "Awaiting verification",
     approved: "Approved",
+    rejected: "Rejected",
     cancelled: "Cancelled",
   },
   cancel: "Cancel",

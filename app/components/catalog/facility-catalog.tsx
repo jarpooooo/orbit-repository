@@ -17,6 +17,7 @@ import { useMemo, useRef, useState } from "react";
 import { CATEGORY_STYLE } from "@/app/design/category-style";
 import { UI_ICONS, illustrationFrame, type IllustrationId } from "@/app/design/icon-map";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
+import { facilityPhotos } from "@/app/data/facility-photos";
 import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import StatusBadge from "@/app/components/ui/status-badge";
 import FilterMenu, { FilterOption } from "./filter-menu";
@@ -40,7 +41,6 @@ import { FACILITY_TEXT, localizeFacility, type FacilityView } from "@/app/i18n/f
 import type { Locale } from "@/app/i18n/locale";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
 import { useLocale } from "@/app/components/layout/language";
-import { dateNames, parseIsoDate } from "@/app/lib/date";
 import { useFacilities } from "@/app/lib/facility-store";
 
 type Tab = "all" | FacilityCategory;
@@ -86,6 +86,8 @@ type Entry = {
   meta: string;
   /** what the permission level asks for (FACILITY_TEXT.requirementsShort); level name first while on loan */
   requirements: string;
+  /** a real photo of this room (each unit of a room type has its own); the illustration is the fallback */
+  photo?: string;
 } & ({ href: string } | { group: RoomGroup });
 
 /* --------------------------------- URL ---------------------------------- */
@@ -150,7 +152,7 @@ function toEntries(views: readonly FacilityView[], collapseRooms: boolean, local
       continue;
     }
     const { id, category, illustration, name, description, status, meta } = f;
-    entries.push({ key: id, category, illustration, name, description, status, meta, requirements: requirementsOf(f.level, status), href: `/catalog/${id}` });
+    entries.push({ key: id, category, illustration, name, description, status, meta, requirements: requirementsOf(f.level, status), href: `/catalog/${id}`, photo: f.multiUnit ? facilityPhotos(f)[0] : undefined });
   }
   // fill in the room-type cards now that every room is counted
   return entries.map((e) => {
@@ -188,13 +190,18 @@ function CatalogCard({ entry, categoryLabel, onOpenGroup }: { entry: Entry; cate
     <>
       {/* illustration panel (fixed accent fill in both themes) + 2px divider */}
       <span
-        className={`flex w-[104px] shrink-0 items-center justify-center self-stretch border-r-2 border-line-strong p-[10px] sm:w-[152px] sm:p-[14px] ${unavailable ? style.panelDimmed : style.panel}`}
+        className={`flex w-[104px] shrink-0 items-center justify-center self-stretch overflow-hidden border-r-2 border-line-strong sm:w-[152px] ${entry.photo ? "" : "p-[10px] sm:p-[14px]"} ${unavailable ? style.panelDimmed : style.panel}`}
       >
-        <FacilityIllustration
-          id={entry.illustration}
-          size={frame}
-          className={`${frame === 96 ? "size-[69px] sm:size-[96px]" : "size-[72px] sm:size-[100px]"} ${unavailable ? "opacity-60" : ""}`}
-        />
+        {entry.photo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- remote Supabase photo, fills the panel
+          <img src={entry.photo} alt="" loading="lazy" className={`size-full object-cover ${unavailable ? "opacity-60" : ""}`} />
+        ) : (
+          <FacilityIllustration
+            id={entry.illustration}
+            size={frame}
+            className={`${frame === 96 ? "size-[69px] sm:size-[96px]" : "size-[72px] sm:size-[100px]"} ${unavailable ? "opacity-60" : ""}`}
+          />
+        )}
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col items-start gap-2 p-4">
@@ -242,7 +249,7 @@ type Props = {
   initialDate?: string;
 };
 
-export default function FacilityCatalog({ initialQuery = "", initialCategory, initialGroup, initialLocation, initialCapacity, initialDate }: Props) {
+export default function FacilityCatalog({ initialQuery = "", initialCategory, initialGroup, initialLocation, initialCapacity }: Props) {
   const { locale } = useLocale();
   const t = CATALOG_TEXT[locale].list;
   const common = COMMON_TEXT[locale];
@@ -257,7 +264,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
       group: initialGroup && isRoomGroup(initialGroup) ? initialGroup : null,
       location: LOCATIONS.find((l) => l === initialLocation) ?? null,
       capacity: (CAPACITY_OPTIONS as readonly number[]).includes(capacity) ? capacity : null,
-      date: initialDate && parseIsoDate(initialDate) ? initialDate : null,
+      date: null, // the date filter was removed from the page: availability is shown on the schedule step
     };
   });
   const [openMenu, setOpenMenu] = useState<Menu | null>(null);
@@ -278,6 +285,7 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
   const toggleMenu = (menu: Menu) => (open: boolean) => setOpenMenu(open ? menu : null);
 
   const SearchIcon = UI_ICONS.search;
+  const CloseIcon = UI_ICONS.close;
   const ArrowIcon = UI_ICONS.next;
 
   const term = filters.query.trim().toLowerCase();
@@ -299,10 +307,6 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
     );
   }, [facilities, filters, term, locale, common]);
 
-  // "12 Nov" on the Tanggal button
-  const chosenDay = filters.date ? parseIsoDate(filters.date) : null;
-  const formattedDate = chosenDay ? `${chosenDay.getDate()} ${dateNames(locale).monthsShort[chosenDay.getMonth()]}` : null;
-
   return (
     <main className="min-h-screen bg-page px-5 pb-14 pt-[112px] sm:px-8 sm:pb-16 sm:pt-[132px] xl:px-[140px] xl:pb-24">
       <div className="mx-auto max-w-[1160px]">
@@ -315,24 +319,62 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
         </div>
 
         {/* Search + filters */}
-        <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="mt-8 flex flex-col gap-3">
           <form
             role="search"
             onSubmit={(e) => e.preventDefault()}
-            className="flex h-[52px] min-w-0 flex-1 items-center gap-[10px] rounded-[14px] border-2 border-line-strong bg-surface px-4 focus-within:border-focus"
+            className="flex h-14 min-w-0 flex-1 items-center gap-3 rounded-[16px] border-[3px] border-line-strong bg-surface pl-4 pr-2 shadow-[0_4px_0_0_var(--color-shadow)] focus-within:border-focus"
           >
-            <SearchIcon size={20} strokeWidth={2} aria-hidden className="shrink-0 text-ink-muted" />
+            <SearchIcon size={22} strokeWidth={2.25} aria-hidden className="shrink-0 text-ink" />
             <input
               type="search"
               value={filters.query}
               onChange={(e) => update({ query: e.target.value })}
               placeholder={t.searchPlaceholder}
               aria-label={t.searchLabel}
-              className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-placeholder"
+              className="w-full bg-transparent text-[16px] text-ink outline-none placeholder:text-ink-placeholder [&::-webkit-search-cancel-button]:hidden"
             />
+            {filters.query && (
+              <button
+                type="button"
+                onClick={() => update({ query: "" })}
+                aria-label={t.clearSearch}
+                className="flex size-10 shrink-0 items-center justify-center rounded-[12px] text-ink hover:bg-surface-warm"
+              >
+                <CloseIcon size={22} strokeWidth={2.5} aria-hidden />
+              </button>
+            )}
           </form>
 
-          <div role="group" aria-label={t.filters.label} className="flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3">
+        </div>
+
+        {/* Category tabs */}
+        <div ref={tabsRef} role="group" aria-label={t.filterLabel} className="mt-8 flex scroll-mt-[120px] flex-wrap gap-[10px]">
+          {TABS.map((tab) => {
+            const active = tab === filters.tab;
+            return (
+              <button
+                key={tab}
+                type="button"
+                aria-pressed={active}
+                onClick={() => update({ tab, subcategory: null, group: null, ...(tab === "room" ? {} : { location: null, capacity: null }) })}
+                className={[
+                  "inline-flex items-center gap-2 whitespace-nowrap rounded-full border-2 border-line-strong px-4 py-[9px] leading-[normal] transition-colors",
+                  active ? "bg-ink text-on-ink shadow-[0_3px_0_0_var(--color-shadow)]" : "bg-surface text-ink hover:bg-surface-warm",
+                ].join(" ")}
+              >
+                <span className="text-[14px] font-extrabold">{tabLabel(tab)}</span>
+                <span className={`text-[12px] font-bold ${active ? "text-on-ink-highlight" : "text-ink-muted"}`}>{counts[tab]}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Room filters only make sense for rooms, so they appear only on the "Ruangan" tab */}
+        {filters.tab === "room" && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="text-[14px] font-bold text-ink-body">{t.roomFilters}</span>
+          <div role="group" aria-label={t.filters.label} className="flex flex-wrap gap-2 sm:gap-3">
             <FilterMenu
               label={t.filters.location}
               value={filters.location && facilityText.locations[filters.location]}
@@ -365,47 +407,9 @@ export default function FacilityCatalog({ initialQuery = "", initialCategory, in
               ))}
               <p className="px-3 pb-1 pt-2 text-[12px] text-ink-muted">{t.filters.capacityNote}</p>
             </FilterMenu>
-
-            <FilterMenu label={t.filters.date} value={formattedDate} open={openMenu === "date"} onOpenChange={toggleMenu("date")} align="right">
-              <label className="flex flex-col gap-2 p-2 text-[13px] font-bold text-ink">
-                {t.filters.dateNote}
-                <input
-                  type="date"
-                  value={filters.date ?? ""}
-                  onChange={(e) => update({ date: e.target.value && parseIsoDate(e.target.value) ? e.target.value : null })}
-                  className="h-11 rounded-[10px] border-2 border-line-strong bg-surface-field px-3 text-[14px] font-normal text-ink [color-scheme:inherit]"
-                />
-              </label>
-              {filters.date && (
-                <FilterOption selected={false} onSelect={() => choose({ date: null })}>
-                  {t.filters.clearDate}
-                </FilterOption>
-              )}
-            </FilterMenu>
           </div>
-        </div>
-
-        {/* Category tabs */}
-        <div ref={tabsRef} role="group" aria-label={t.filterLabel} className="mt-8 flex scroll-mt-[120px] flex-wrap gap-[10px]">
-          {TABS.map((tab) => {
-            const active = tab === filters.tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                aria-pressed={active}
-                onClick={() => update({ tab, subcategory: null, group: null })}
-                className={[
-                  "inline-flex items-center gap-2 whitespace-nowrap rounded-full border-2 border-line-strong px-4 py-[9px] leading-[normal] transition-colors",
-                  active ? "bg-ink text-on-ink shadow-[0_3px_0_0_var(--color-shadow)]" : "bg-surface text-ink hover:bg-surface-warm",
-                ].join(" ")}
-              >
-                <span className="text-[14px] font-extrabold">{tabLabel(tab)}</span>
-                <span className={`text-[12px] font-bold ${active ? "text-on-ink-highlight" : "text-ink-muted"}`}>{counts[tab]}</span>
-              </button>
-            );
-          })}
-        </div>
+          </div>
+        )}
 
         {/* Narrowing that came from elsewhere: a home page card (subcategory) or a room-type card (group) */}
         {(filters.subcategory || filters.group) && (

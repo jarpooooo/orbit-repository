@@ -33,3 +33,11 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function SignedInOnly({ children }: { children: ReactNode }) {
   return useAuth().status === "signed-in" ? children : null;
 }
+
+/** Admin pages. Signed out → /login; signed in without the admin role → a short notice. */
+export function RequireAdmin({ children, denied }: { children: ReactNode; denied: ReactNode }) {
+  const auth = useAuth();
+  return (
+    <RequireAuth>{auth.status === "signed-in" && auth.session.role === "admin" ? children : denied}</RequireAuth>
+  );
+}

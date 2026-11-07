@@ -47,21 +47,18 @@ const LINK_COLUMNS: readonly { column: FooterColumnKey; links: readonly { page: 
   {
     column: "borrowing",
     links: [
-      // history, returns, and notifications all live on "Pengajuan saya" for now (no separate pages)
       { page: "myRequests", href: "/my-requests" },
-      { page: "history", href: "/my-requests" },
-      { page: "returns", href: "/my-requests" },
-      { page: "notifications", href: "/my-requests" },
+      { page: "mostBorrowed", href: "/room-schedule/most-borrowed" },
+      { page: "rules", href: "/how-to-borrow#ketentuan" },
     ],
   },
   {
     column: "help",
     links: [
-      // guide + FAQ = "Cara Pinjam"; the sample letter is the blank .docx template; issues go by email
+      // the sample letter is the blank .docx template; the help desk is the WhatsApp number
       { page: "guide", href: "/how-to-borrow" },
       { page: "sampleLetter", href: "/templates/permission-letter.docx", file: true },
-      { page: "faq", href: "/how-to-borrow" },
-      { page: "reportIssue", href: `mailto:${SITE.email}?subject=Kendala%20PinjamTEDI`, file: true },
+      { page: "helpDesk", href: "https://wa.me/6281329814848", file: true },
     ],
   },
 ];
@@ -220,6 +217,7 @@ export default function Footer() {
                       <a
                         href={link.href}
                         download={link.href.endsWith(".docx") ? "contoh-surat-izin-pinjamtedi.docx" : undefined}
+                        {...(link.href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                         className="text-[16px] font-normal leading-[1.55] transition-colors hover:text-white hover:underline"
                       >
                         {text.pages[link.page]}

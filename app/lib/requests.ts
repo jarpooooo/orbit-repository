@@ -43,6 +43,7 @@ export const REQUEST_STATUS_COLORS: Record<RequestStatusKey, AvailabilityStatus>
   readyPickup: "direct",
   verifying: "verification",
   approved: "direct",
+  rejected: "letter",
   cancelled: "borrowed",
 };
 
@@ -59,6 +60,9 @@ export type StoredRequest = {
   startDate: string;
   borrower: Borrower;
   purpose: string;
+  /** borrower account email and the letter file name (admin view) */
+  email: string;
+  letterFileName: string | null;
   status: RequestStatusKey;
   /** null right after writing, until the server time arrives */
   createdAt: Date | null;
@@ -88,6 +92,8 @@ function fromDocument(code: string, d: Record<string, unknown>): StoredRequest |
     startDate: String(d.startDate ?? selectionStart(selection)),
     borrower: { name: String(b.name ?? ""), studentId: String(b.studentId ?? ""), studyProgram: String(b.studyProgram ?? "") },
     purpose: String(d.purpose ?? ""),
+    email: String(d.email ?? ""),
+    letterFileName: typeof d.letterFileName === "string" ? d.letterFileName : null,
     status: d.status as RequestStatusKey,
     createdAt: (d.createdAt as Timestamp | null)?.toDate() ?? null,
   };
@@ -148,6 +154,11 @@ export async function cancelRequest(code: string) {
   await updateDoc(doc(db, "requests", code), { status: "cancelled", cancelledAt: serverTimestamp(), updatedAt: serverTimestamp() });
 }
 
+/** Admin only (firestore.rules): move a request to another status. */
+export async function setRequestStatus(code: string, status: RequestStatusKey) {
+  await updateDoc(doc(db, "requests", code), { status, updatedAt: serverTimestamp() });
+}
+
 /** Saved profile of the signed-in student (register page), to prefill the request form. */
 export async function loadProfile(uid: string): Promise<Partial<Borrower>> {
   try {
@@ -205,4 +216,28 @@ export function useRequest(code: string | undefined): StoredRequest | null | und
 
   if (!uid || !code) return null;
   return state?.key === key ? state.value : undefined;
+}
+
+/** Every request, newest first, live. Admin only: firestore.rules refuses it for anyone else. */
+export function useAllRequests(): MyRequestsState {
+  const isAdmin = useSession()?.role === "admin";
+  const [state, setState] = useState<MyRequestsState>({ status: "loading" });
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    return onSnapshot(
+      collection(db, "requests"),
+      (result) => {
+        const requests = result.docs.flatMap((d) => fromDocument(d.id, d.data()) ?? []);
+        requests.sort((a, b) => (b.createdAt?.getTime() ?? Infinity) - (a.createdAt?.getTime() ?? Infinity));
+        setState({ status: "ready", requests });
+      },
+      (error) => {
+        console.warn("[requests] admin list failed:", error.code);
+        setState({ status: "error" });
+      },
+    );
+  }, [isAdmin]);
+
+  return state;
 }
