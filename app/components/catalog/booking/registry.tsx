@@ -42,8 +42,8 @@ type ModeConfig<S extends BookingSelection> = {
   finishDetail: (s: S, locale: Locale) => string;
   /** loan period written in the permission letter */
   letterPeriod: (s: S) => LetterPeriod;
-  /** one-day selection from a cell of the room schedule ("Lihat jadwal": day + session) */
-  quickSelection: (date: string, sessionId: number) => S;
+  /** one-day selection from a cell of the room schedule ("Cek ketersediaan": day + start hour) */
+  quickSelection: (date: string, startHour: number) => S;
 };
 
 export const BOOKING_MODES: { [M in BookingMode]: ModeConfig<Extract<BookingSelection, { mode: M }>> } = {
@@ -63,7 +63,7 @@ export const BOOKING_MODES: { [M in BookingMode]: ModeConfig<Extract<BookingSele
     useDetail: sessionUseDetail,
     finishDetail: sessionFinishDetail,
     letterPeriod: sessionLetterPeriod,
-    quickSelection: (date, sessionId) => ({ mode: "session", date, sessionId, participants: 1 }),
+    quickSelection: (date, startHour) => ({ mode: "session", date, startHour, endHour: startHour + 1, participants: 1 }),
   },
 };
 

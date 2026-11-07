@@ -1,7 +1,7 @@
 // app/components/home/how-to-borrow.tsx
 //
 // "Empat langkah, dari cari sampai ambil" section (Figma node 1:3262, desktop 1440px).
-// Inverse (navy) card + yellow shadow, 4 step cards, 3 permission levels (Langsung / Verifikasi / Perlu surat).
+// Inverse (navy) card + yellow shadow, 4 step cards, 3 permission levels (Langsung / Verifikasi / Butuh surat).
 // No image assets: numbers, labels, and lines are all CSS.
 // Text: HOME_TEXT.howToBorrow (app/i18n/home.ts). Client component because the text follows the language preference.
 

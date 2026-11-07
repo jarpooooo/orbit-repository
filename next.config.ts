@@ -1,19 +1,39 @@
 import type { NextConfig } from "next";
 
-// Deployed as a STATIC site on Firebase Hosting (free Spark plan, no server): `next build` writes every page
-// to out/ and `firebase deploy --only hosting` uploads it. Live data (facilities, requests, sign-in) comes from
-// Firebase in the browser, so it works without a server.
-// Static export does not support next.config redirects / headers, so they live in firebase.json:
-//   - old Indonesian URLs (/katalog, /jadwal-ruang, ...) → English routes (301)
-//   - /sw.js never cached (PWA service worker)
-// cacheComponents / partialPrefetching are off: they need a Next server (PPR) and cannot be exported.
 const nextConfig: NextConfig = {
-  output: "export",
-  // no image server on a static host: next/image serves the files as they are (all images are SVG anyway)
-  images: { unoptimized: true },
+  /* config options here */
   experimental: {
     agentFeedback: true,
   },
+  cacheComponents: true,
+  // Old Indonesian URLs → English routes, so previously shared or indexed links keep working.
+  async redirects() {
+    return [
+      { source: "/katalog/:slug/jadwal", destination: "/catalog/:slug/schedule", permanent: true },
+      { source: "/katalog/:slug/ajukan", destination: "/catalog/:slug/request", permanent: true },
+      { source: "/katalog/:slug/surat", destination: "/catalog/:slug/letter", permanent: true },
+      { source: "/katalog/:slug/ringkasan", destination: "/catalog/:slug/summary", permanent: true },
+      { source: "/katalog/:path*", destination: "/catalog/:path*", permanent: true },
+      { source: "/jadwal-ruang/paling-sering-dipinjam", destination: "/room-schedule/most-borrowed", permanent: true },
+      { source: "/jadwal-ruang", destination: "/room-schedule", permanent: true },
+      { source: "/pengajuan-saya", destination: "/my-requests", permanent: true },
+      { source: "/cara-pinjam", destination: "/how-to-borrow", permanent: true },
+    ];
+  },
+  // PWA service worker (public/sw.js): never cached by the browser or a CDN, so an update reaches users at once
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
+  },
+  partialPrefetching: true,
   turbopack: {
     rules: {
       "*.css": {

@@ -1,6 +1,6 @@
 // app/components/layout/service-worker.tsx  (used by app/layout.tsx)
 //
-// Registers public/sw.js (offline page for the PWA; manifest from scripts/static-files.mjs) once the browser is idle after
+// Registers public/sw.js (offline page for the PWA, see app/manifest.ts) once the browser is idle after
 // hydration, so it never competes with the first render. Production only: in `npm run dev` a service worker would keep
 // serving stale pages; an old registration from a production run is removed there.
 

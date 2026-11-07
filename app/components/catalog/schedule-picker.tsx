@@ -3,12 +3,12 @@
 // Step 3 of the request flow. Shell only: breadcrumb + stepper, then the Scheduler of the facility's
 // booking mode from BOOKING_MODES (booking/registry.tsx):
 //   "daily"   → DailyScheduler   (Figma 2.2 "Pilih tanggal": pick-up + return date)
-//   "session" → SessionScheduler (Figma 3.2 "Pilih sesi": one day + one session)
+//   "session" → SessionScheduler (Figma 3.2a "Pilih hari" → 3.2b "Pilih jam": one day, then custom hours)
 // "Today" is read in the browser after mount so it never differs from the server prerender.
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import Stepper from "@/app/components/layout/stepper";
 import { bookingMode, type Facility } from "@/app/data/facilities";
@@ -41,7 +41,12 @@ export default function SchedulePicker({ facility: seed }: { facility: Facility 
         />
         <Stepper active={3} mode={mode} />
         {/* wait for "today" from the browser first (avoids a server vs. client render mismatch) */}
-        {now && <Scheduler facility={facility} now={now} />}
+        {/* Suspense: the room scheduler reads its step (?hari=) from the URL */}
+        {now && (
+          <Suspense>
+            <Scheduler facility={facility} now={now} />
+          </Suspense>
+        )}
       </div>
     </main>
   );

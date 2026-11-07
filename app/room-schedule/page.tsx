@@ -1,13 +1,14 @@
 // app/room-schedule/page.tsx
 //
-// "09 Lihat jadwal" (Figma node 8:1588), the "Jadwal Ruang" navbar item.
-// Availability table: rows = facilities, columns = 4 sessions, for one selected day.
-//  - Default day = today (Sunday closed, after 17.00 → next working day). Read in the browser after mount.
-//  - ‹ › moves by week (up to MAX_MONTHS_AHEAD ahead). Filter: Semua / Ruang / Hardware / Logistik.
-//  - Green cell = link to /catalog/[slug]/request?hari=…&sesi=…&jumlah=1. Yellow/gray cells are not clickable.
-// Data = SIMULATION. SCHEDULE_ROWS below comes from Figma (Mon, 26 Oct 2026); other days rotate that pattern.
-// Not yet in sync with the simulation on the Pilih jadwal page. Replace both with API data later.
-
+// "Cek ketersediaan" (Figma "1.5", the "Cek Ketersediaan" navbar item). One week (Mon–Sat, ‹ › by week); pick a day.
+//  - Ruangan: one row per room, the day's hours 08.00–17.00 as columns. Hours with the same state are merged into
+//    one block (Kosong / Terisi / Menunggu verifikasi / Lewat). A green block opens the room's "Pilih jam" step
+//    (/catalog/[id]/schedule?hari=…).
+//  - Barang: one row per item, the week's days as columns: "n unit" (green / orange when low), "Habis" (gray, red
+//    text) and "Tutup"; neighboring Habis / Tutup / Lewat days are merged. A green day opens the item's schedule.
+//  - Filter: Semua / one category.
+// Data: the SAME simulation the schedulers use (getHourAvailability / getDailyAvailability in app/data/availability.ts),
+// so what this page shows is what the booking steps accept. Facilities are live (useFacilities).
 // Text: ROOM_SCHEDULE_TEXT.schedule (app/i18n/room-schedule.ts); facility content via localizeFacility.
 
 "use client";
@@ -19,97 +20,75 @@ import { UI_ICONS } from "@/app/design/icon-map";
 import CategoryBadge from "@/app/components/ui/category-badge";
 import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
-import { CATEGORY_ORDER, withFacilities, type Facility, type FacilityCategory } from "@/app/data/facilities";
+import { getDailyAvailability, getHourAvailability, isClosedDay } from "@/app/data/availability";
+import { CATEGORY_ORDER, bookingMode, type Facility, type FacilityCategory } from "@/app/data/facilities";
 import { COMMON_TEXT } from "@/app/i18n/common";
-import { FACILITY_TEXT, localizeFacility, type FacilityView } from "@/app/i18n/facilities";
+import { FACILITY_TEXT, localizeFacility } from "@/app/i18n/facilities";
 import type { Locale } from "@/app/i18n/locale";
 import { ROOM_SCHEDULE_TEXT } from "@/app/i18n/room-schedule";
 import { useLocale } from "@/app/components/layout/language";
-import { MAX_MONTHS_AHEAD, SESSIONS, firstBookableDate, isSessionPast, sessionLabel, toSelectionQuery, validateSelection } from "@/app/lib/booking";
-import { modeFor } from "@/app/components/catalog/booking/registry";
-import {
-  addDays,
-  addMonths,
-  dateNames,
-  diffInDays,
-  formatShortDate,
-  isSameDay,
-  startOfWeek,
-  toIsoDate,
-  toNoon,
-} from "@/app/lib/date";
-
-/* ----------------------------- simulated data ----------------------------- */
-
-/** number = units left (0 = sold out) */
-type SlotValue = number | "free" | "taken" | "pending";
-
-/** Row order + 4-session pattern for Mon, 26 Oct 2026 (Figma layout; [dummy] values, 1 unit per item). */
-const SCHEDULE_ROWS = withFacilities([
-  { id: "esp32", pattern: [1, 1, 0, 1] },
-  { id: "discussion-room-1", pattern: ["free", "taken", "free", "pending"] },
-  { id: "auditorium", pattern: ["free", "free", "taken", "free"] },
-  { id: "computer-lab-1", pattern: ["taken", "taken", "taken", "taken"] },
-  { id: "sensor-kit", pattern: [1, 1, 1, 0] },
-  { id: "hdmi-vga-adapter", pattern: [1, 1, 0, 1] },
-  { id: "camera", pattern: [1, 0, 1, 1] },
-  { id: "extra-chair", pattern: [1, 1, 1, 1] },
-] satisfies { id: string; pattern: SlotValue[] }[]);
-
-/** 26 Oct 2026 = the Figma pattern as-is */
-/** Link of an open cell: a one-day selection in the facility's booking mode, or its schedule page if the
- *  availability data does not allow that day / session. */
-function requestHref(f: Facility, date: string, sessionId: number) {
-  const selection = modeFor(f).quickSelection(date, sessionId);
-  return validateSelection(selection, f) ? `/catalog/${f.id}/schedule` : `/catalog/${f.id}/request?${toSelectionQuery(selection)}`;
-}
-
-const PATTERN_REFERENCE_DATE = new Date(2026, 9, 26, 12);
-
-type CellKind = "open" | "full" | "pending" | "past";
-type Cell = { kind: CellKind; line1: string; line2: string };
-
-function computeCell(f: FacilityView, pattern: readonly SlotValue[], day: Date, session: number, now: Date, locale: Locale): Cell {
-  const t = ROOM_SCHEDULE_TEXT[locale].schedule.cell;
-  if (isSessionPast(day, session, now)) return { kind: "past", line1: t.past, line2: "" };
-  const shift = ((diffInDays(day, PATTERN_REFERENCE_DATE) % 4) + 4) % 4;
-  const value = pattern[(session + shift) % 4];
-  if (value === "pending") return { kind: "pending", line1: t.pending[0], line2: t.pending[1] };
-  if (value === "free") return { kind: "open", line1: t.free, line2: "" };
-  if (value === "taken") return { kind: "full", line1: t.taken, line2: "" };
-  if (value > 0) return { kind: "open", line1: FACILITY_TEXT[locale].quantity(value, f.unit), line2: t.available };
-  return { kind: "full", line1: f.unit === "person" ? t.taken : t.soldOut, line2: "" };
-}
-
-const CELL_CLASSES: Record<CellKind, string> = {
-  open: "border-line-strong bg-status-available-bg text-status-available-fg shadow-[0_3px_0_0_var(--color-shadow)]",
-  pending: "border-line-strong bg-status-pending-bg text-status-pending-fg",
-  full: "border-line-strong bg-status-unavailable-bg text-status-unavailable-fg",
-  past: "border-line-strong bg-status-unavailable-bg text-status-unavailable-fg opacity-70",
-};
-
-/** Legend chips (labels in ROOM_SCHEDULE_TEXT.schedule.legend). */
-const LEGEND = [
-  { key: "available", box: "bg-status-available-bg text-status-available-fg", dot: "bg-status-available-fg" },
-  { key: "pending", box: "bg-status-pending-bg text-status-pending-fg", dot: "bg-status-pending-fg" },
-  { key: "full", box: "bg-status-unavailable-bg text-status-unavailable-fg", dot: "bg-status-unavailable-fg" },
-] as const;
+import { BOOKABLE_HOURS, MAX_MONTHS_AHEAD, firstBookableDate, firstPickupDate, hourLabel, isHourPast, timeRangeLabel } from "@/app/lib/booking";
+import { useFacilities } from "@/app/lib/facility-store";
+import { addDays, addMonths, dateNames, formatShortDate, isSameDay, parseIsoDate, startOfWeek, toIsoDate, toNoon } from "@/app/lib/date";
 
 type Filter = "all" | FacilityCategory;
 const FILTERS: readonly Filter[] = ["all", ...CATEGORY_ORDER];
 
-const TABLE_COLUMNS = "md:grid-cols-[210px_repeat(4,minmax(0,1fr))] lg:grid-cols-[280px_repeat(4,minmax(0,1fr))]";
+type Kind = "free" | "few" | "taken" | "pending" | "past" | "closed";
+/** One look per state, shared by both tables (and the same colors as the booking calendars). */
+const CELL: Record<Kind, string> = {
+  free: "border-line-strong bg-status-available-bg text-status-available-fg",
+  few: "border-line-strong bg-status-attention-bg text-status-attention-fg",
+  taken: "border-line bg-status-unavailable-bg text-stock-out-fg",
+  pending: "border-line-strong bg-status-pending-bg text-status-pending-fg",
+  past: "border-line bg-status-unavailable-bg text-ink-muted opacity-70",
+  closed: "border-line bg-status-unavailable-bg text-ink-muted",
+};
+const LINK_CELL = "shadow-[0_3px_0_0_var(--color-shadow)] transition-transform hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-shadow)]";
+const LEGEND = [
+  { key: "available", box: "bg-status-available-bg" },
+  { key: "few", box: "bg-status-attention-bg" },
+  { key: "pending", box: "bg-status-pending-bg" },
+  { key: "full", box: "bg-status-unavailable-bg" },
+] as const;
+
 const CONTROL_BUTTON =
   "inline-flex size-11 shrink-0 items-center justify-center rounded-[14px] border-2 border-line-strong bg-surface text-ink transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
+const CARD =
+  "flex w-full flex-col gap-3 rounded-[20px] border-2 border-line-strong bg-surface p-3 shadow-[4px_4px_0_0_var(--color-shadow)] sm:p-[18px] sm:shadow-[6px_6px_0_0_var(--color-shadow)]";
+
+/** Neighbors with the same kind (and `mergeable`) become one block: [{ kind, from, span }] */
+function mergeRuns<T>(items: readonly T[], kindOf: (x: T) => Kind, mergeable: (k: Kind) => boolean) {
+  const runs: { kind: Kind; from: number; span: number }[] = [];
+  items.forEach((x, i) => {
+    const kind = kindOf(x);
+    const last = runs.at(-1);
+    if (last && last.kind === kind && mergeable(kind)) last.span += 1;
+    else runs.push({ kind, from: i, span: 1 });
+  });
+  return runs;
+}
 
 function weekRangeLabel(days: readonly Date[], locale: Locale) {
   const { monthsShort } = dateNames(locale);
   const first = days[0];
   const last = days[days.length - 1];
   const end = `${last.getDate()} ${monthsShort[last.getMonth()]} ${last.getFullYear()}`;
-  return first.getMonth() === last.getMonth()
-    ? `${first.getDate()} – ${end}`
-    : `${first.getDate()} ${monthsShort[first.getMonth()]} – ${end}`;
+  return first.getMonth() === last.getMonth() ? `${first.getDate()} – ${end}` : `${first.getDate()} ${monthsShort[first.getMonth()]} – ${end}`;
+}
+
+function FacilityName({ f }: { f: ReturnType<typeof localizeFacility> }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 p-[6px]">
+      <span className={`shrink-0 rounded-[12px] border-2 border-line-strong p-[5px] ${CATEGORY_STYLE[f.category].panel}`}>
+        <FacilityIllustration id={f.illustration} size={34} className="size-[34px]" />
+      </span>
+      <div className="flex min-w-0 flex-col items-start leading-[normal]">
+        <span className="truncate text-[14px] font-extrabold text-ink">{f.name}</span>
+        <CategoryBadge category={f.category} />
+      </div>
+    </div>
+  );
 }
 
 /* -------------------------------- components -------------------------------- */
@@ -126,30 +105,36 @@ function RoomSchedule({ now }: { now: Date }) {
   const { locale } = useLocale();
   const t = ROOM_SCHEDULE_TEXT[locale].schedule;
   const common = COMMON_TEXT[locale];
-  const { workdaysShort, monthsShort } = dateNames(locale);
+  const names = dateNames(locale);
+  const facilities = useFacilities();
   const filterLabel = (f: Filter) => (f === "all" ? common.all : common.categories[f]);
   const PrevIcon = UI_ICONS.back;
   const NextIcon = UI_ICONS.next;
 
   const minDate = firstBookableDate(now);
   const maxDate = addMonths(toNoon(now), MAX_MONTHS_AHEAD);
+  const pickupIso = toIsoDate(firstPickupDate(now));
 
   const [selected, setSelected] = useState(minDate);
   const [weekStart, setWeekStart] = useState(startOfWeek(minDate));
   const [filter, setFilter] = useState<Filter>("all");
 
-  const isSelectable = (d: Date) => toIsoDate(d) >= toIsoDate(minDate) && toIsoDate(d) <= toIsoDate(maxDate);
+  const isSelectable = (d: Date) => toIsoDate(d) >= toIsoDate(minDate) && toIsoDate(d) <= toIsoDate(maxDate) && !isClosedDay(toIsoDate(d));
   const shiftWeek = (direction: 1 | -1) => {
     const nextWeek = addDays(weekStart, 7 * direction);
     setWeekStart(nextWeek);
-    setSelected(toIsoDate(nextWeek) < toIsoDate(minDate) ? minDate : nextWeek);
+    const days = Array.from({ length: 6 }, (_, i) => addDays(nextWeek, i));
+    setSelected(days.find(isSelectable) ?? (toIsoDate(nextWeek) < toIsoDate(minDate) ? minDate : nextWeek));
   };
   const prevWeekDisabled = toIsoDate(weekStart) <= toIsoDate(startOfWeek(minDate));
   const nextWeekDisabled = toIsoDate(addDays(weekStart, 7)) > toIsoDate(maxDate);
 
   const weekDays = Array.from({ length: 6 }, (_, i) => addDays(weekStart, i));
+  const selectedIso = toIsoDate(selected);
   const selectedLabel = formatShortDate(selected, locale);
-  const rows = SCHEDULE_ROWS.filter((row) => filter === "all" || row.facility.category === filter);
+  const shown = (f: Facility) => filter === "all" || f.category === filter;
+  const rooms = facilities.filter((f) => bookingMode(f) === "session" && shown(f));
+  const items = facilities.filter((f) => bookingMode(f) === "daily" && shown(f));
 
   return (
     <main className="min-h-screen bg-page px-5 pb-16 pt-[112px] sm:px-8 sm:pt-[128px] xl:px-[140px] xl:pb-20">
@@ -170,7 +155,7 @@ function RoomSchedule({ now }: { now: Date }) {
           </Link>
         </div>
 
-        {/* Day picker */}
+        {/* Day picker (Mon–Sat) */}
         <div className="flex w-full flex-col gap-2">
           <div className="flex items-center gap-2">
             <button type="button" aria-label={t.prevWeek} disabled={prevWeekDisabled} onClick={() => shiftWeek(-1)} className={CONTROL_BUTTON}>
@@ -186,17 +171,17 @@ function RoomSchedule({ now }: { now: Date }) {
                     type="button"
                     disabled={!selectable}
                     aria-pressed={isSelected}
-                    aria-label={`${workdaysShort[i]} ${d.getDate()} ${monthsShort[d.getMonth()]}`}
+                    aria-label={formatShortDate(d, locale)}
                     onClick={() => setSelected(d)}
                     className={`flex shrink-0 items-center gap-2 rounded-[14px] border-2 px-4 py-2 leading-[normal] transition-transform ${
                       isSelected
                         ? "border-line-strong bg-brand-secondary shadow-[0_3px_0_0_var(--color-shadow)]"
                         : selectable
                           ? "border-line-strong bg-surface hover:-translate-y-0.5"
-                          : "cursor-not-allowed border-line bg-surface/50 opacity-60"
+                          : "cursor-not-allowed border-line bg-status-unavailable-bg opacity-60"
                     }`}
                   >
-                    <span className={`text-[13px] font-extrabold ${isSelected ? "text-on-accent-muted" : "text-ink-muted"}`}>{workdaysShort[i]}</span>
+                    <span className={`text-[13px] font-extrabold ${isSelected ? "text-on-accent-muted" : "text-ink-muted"}`}>{names.workdaysShort[i]}</span>
                     <span className={`font-display text-[22px] ${isSelected ? "text-on-secondary" : "text-ink"}`}>{d.getDate()}</span>
                   </button>
                 );
@@ -231,82 +216,133 @@ function RoomSchedule({ now }: { now: Date }) {
           })}
         </div>
 
-        {/* Schedule table */}
-        <section
-          aria-label={t.tableLabel(selectedLabel)}
-          className="flex w-full flex-col gap-2 rounded-[20px] border-2 border-line-strong bg-surface p-3 shadow-[4px_4px_0_0_var(--color-shadow)] sm:p-[18px] sm:shadow-[6px_6px_0_0_var(--color-shadow)]"
-        >
-          <p className="px-1 text-[13px] font-extrabold text-ink md:hidden">{selectedLabel}</p>
+        {rooms.length === 0 && items.length === 0 && <p className="text-[14px] text-ink-muted-on-page">{t.empty}</p>}
 
-          <div aria-hidden className={`hidden gap-2 md:grid ${TABLE_COLUMNS}`}>
-            <span className="p-[6px] text-[13px] font-extrabold text-ink-muted">{t.facilityColumn}</span>
-            {SESSIONS.map((s, i) => (
-              <span key={s} className="py-[6px] text-center text-[13px] font-extrabold text-ink">
-                {sessionLabel(i, locale)}
-              </span>
-            ))}
-          </div>
-
-          {rows.length === 0 && <p className="p-4 text-[14px] text-ink-muted">{t.empty}</p>}
-
-          {rows.map(({ facility: original, pattern }) => {
-            const f = localizeFacility(original, locale);
-            return (
-              <div
-                key={f.id}
-                className={`grid grid-cols-2 items-center gap-2 border-t-2 border-line-warm/60 pt-3 first:border-t-0 first:pt-0 md:border-t-0 md:pt-0 ${TABLE_COLUMNS}`}
-              >
-                <div className="col-span-2 flex items-center gap-3 p-[6px] md:col-span-1 md:h-[60px]">
-                  <span className={`shrink-0 rounded-[12px] border-2 border-line-strong p-[5px] ${CATEGORY_STYLE[f.category].panel}`}>
-                    <FacilityIllustration id={f.illustration} size={38} className="size-[38px]" />
+        {/* Rooms: hours of the selected day */}
+        {rooms.length > 0 && (
+          <section aria-label={t.roomsTitle(selectedLabel)} className={CARD}>
+            <div className="flex flex-col gap-1 px-1">
+              <h2 className="font-display text-[22px] font-normal leading-[normal] text-ink">{t.roomsTitle(selectedLabel)}</h2>
+              <p className="text-[13px] text-ink-body">{t.roomsLead}</p>
+            </div>
+            <div className="overflow-x-auto pb-1">
+              <div className="grid min-w-[760px] grid-cols-[220px_repeat(9,minmax(0,1fr))] gap-x-1.5 gap-y-2">
+                <span className="p-[6px] text-[12px] font-extrabold text-ink-muted">{t.facilityColumn}</span>
+                {BOOKABLE_HOURS.map((h) => (
+                  <span key={h} aria-hidden className="py-[6px] text-center text-[12px] font-extrabold text-ink">
+                    {hourLabel(h, locale)}
                   </span>
-                  <div className="flex min-w-0 flex-col leading-[normal]">
-                    <span className="text-[15px] font-extrabold text-ink">{f.name}</span>
-                    <CategoryBadge category={f.category} />
-                  </div>
-                </div>
-
-                {SESSIONS.map((session, i) => {
-                  const label = sessionLabel(i, locale);
-                  const cell = computeCell(f, pattern, selected, i, now, locale);
-                  const description = `${cell.line1}${cell.line2 ? ` ${cell.line2}` : ""}`;
-                  const content = (
-                    <>
-                      <span className="text-[11px] font-bold opacity-75 md:hidden">{label}</span>
-                      <span className="text-[15px] font-extrabold">{cell.line1}</span>
-                      <span className="min-h-[14px] text-[11px] font-normal">{cell.line2 || " "}</span>
-                    </>
-                  );
-                  const cellClass = `flex min-w-0 flex-col items-center rounded-[12px] border-2 py-[10px] text-center leading-[normal] ${CELL_CLASSES[cell.kind]}`;
-                  return cell.kind === "open" ? (
-                    <Link
-                      key={session}
-                      href={requestHref(original, toIsoDate(selected), i)}
-                      aria-label={t.requestCell(f.name, label, description)}
-                      className={`${cellClass} transition-transform hover:-translate-y-0.5 active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-shadow)]`}
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div key={session} role="img" aria-label={`${f.name}, ${label}, ${description}`} className={cellClass}>
-                      {content}
+                ))}
+                {rooms.map((original) => {
+                  const f = localizeFacility(original, locale);
+                  const hours = getHourAvailability(f.id, selectedIso).map(({ hour, status }) => ({
+                    hour,
+                    kind: (isClosedDay(selectedIso) ? "closed" : isHourPast(selected, hour, now) ? "past" : status) as Kind,
+                  }));
+                  const runs = mergeRuns(hours, (x) => x.kind, () => true);
+                  return (
+                    <div key={f.id} className="contents">
+                      <FacilityName f={f} />
+                      {runs.map((run) => {
+                        const start = hours[run.from].hour;
+                        const range = timeRangeLabel(start, start + run.span, locale);
+                        const label = t.cell[run.kind === "few" ? "free" : run.kind];
+                        const className = `flex min-h-[52px] min-w-0 flex-col items-center justify-center rounded-[10px] border-2 px-1 text-center text-[12px] font-extrabold leading-tight ${CELL[run.kind]}`;
+                        const style = { gridColumn: `span ${run.span}` };
+                        return run.kind === "free" ? (
+                          <Link
+                            key={run.from}
+                            href={`/catalog/${f.id}/schedule?hari=${selectedIso}`}
+                            aria-label={t.openRoom(f.name, range)}
+                            style={style}
+                            className={`${className} ${LINK_CELL}`}
+                          >
+                            {label}
+                            {run.span > 1 && <span className="text-[11px] font-bold opacity-80">{range}</span>}
+                          </Link>
+                        ) : (
+                          <div key={run.from} role="img" aria-label={`${f.name}, ${range}, ${label}`} style={style} className={className}>
+                            {label}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
               </div>
-            );
-          })}
-        </section>
+            </div>
+          </section>
+        )}
+
+        {/* Items: stock per day of the week */}
+        {items.length > 0 && (
+          <section aria-label={t.itemsTitle} className={CARD}>
+            <div className="flex flex-col gap-1 px-1">
+              <h2 className="font-display text-[22px] font-normal leading-[normal] text-ink">{t.itemsTitle}</h2>
+              <p className="text-[13px] text-ink-body">{t.itemsLead}</p>
+            </div>
+            <div className="overflow-x-auto pb-1">
+              <div className="grid min-w-[640px] grid-cols-[220px_repeat(6,minmax(0,1fr))] gap-x-1.5 gap-y-2">
+                <span className="p-[6px] text-[12px] font-extrabold text-ink-muted">{t.facilityColumn}</span>
+                {weekDays.map((d, i) => (
+                  <span
+                    key={toIsoDate(d)}
+                    aria-hidden
+                    className={`rounded-[8px] py-[6px] text-center text-[12px] font-extrabold ${isSameDay(d, selected) ? "bg-brand-secondary text-on-secondary" : "text-ink"}`}
+                  >
+                    {names.workdaysShort[i]} {d.getDate()}
+                  </span>
+                ))}
+                {items.map((original) => {
+                  const f = localizeFacility(original, locale);
+                  const days = weekDays.map((d) => {
+                    const iso = toIsoDate(d);
+                    const a = getDailyAvailability(f.id, iso);
+                    const kind: Kind =
+                      a.level === "closed" ? "closed" : iso < pickupIso ? "past" : a.level === "out" ? "taken" : a.level === "low" ? "few" : "free";
+                    return { iso, kind, units: a.units };
+                  });
+                  const runs = mergeRuns(days, (x) => x.kind, (k) => k === "taken" || k === "closed" || k === "past");
+                  return (
+                    <div key={f.id} className="contents">
+                      <FacilityName f={f} />
+                      {runs.map((run) => {
+                        const day = days[run.from];
+                        const open = run.kind === "free" || run.kind === "few";
+                        const label = open ? FACILITY_TEXT[locale].quantity(day.units, f.unit) : run.kind === "taken" ? t.cell.soldOut : t.cell[run.kind === "past" ? "past" : "closed"];
+                        const dayName = formatShortDate(parseIsoDate(day.iso)!, locale);
+                        const className = `flex min-h-[52px] min-w-0 items-center justify-center rounded-[10px] border-2 px-1 text-center text-[12px] font-extrabold leading-tight ${CELL[run.kind]}`;
+                        const style = { gridColumn: `span ${run.span}` };
+                        return open ? (
+                          <Link
+                            key={day.iso}
+                            href={`/catalog/${f.id}/schedule`}
+                            aria-label={t.openItem(f.name, dayName, label)}
+                            style={style}
+                            className={`${className} ${LINK_CELL}`}
+                          >
+                            {label}
+                          </Link>
+                        ) : (
+                          <div key={day.iso} role="img" aria-label={`${f.name}, ${dayName}, ${label}`} style={style} className={className}>
+                            {label}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-[13px] font-extrabold text-ink">{t.legendLabel}</span>
           {LEGEND.map((item) => (
-            <span
-              key={item.key}
-              className={`inline-flex items-center gap-[6px] rounded-full border-2 border-line-strong px-[11px] py-[3px] text-[12.5px] font-extrabold ${item.box}`}
-            >
-              <span aria-hidden className={`size-2 rounded-full ${item.dot}`} />
+            <span key={item.key} className="inline-flex items-center gap-[6px] text-[13px] font-bold text-ink-body">
+              <span aria-hidden className={`size-3.5 rounded-[4px] border-[1.5px] border-line-strong ${item.box}`} />
               {t.legend[item.key]}
             </span>
           ))}

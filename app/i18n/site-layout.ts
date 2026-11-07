@@ -26,7 +26,7 @@ const id = {
   pages: {
     home: "Beranda",
     catalog: "Katalog",
-    roomSchedule: "Jadwal Ruang",
+    roomSchedule: "Cek Ketersediaan",
     howToBorrow: "Cara Pinjam",
     myRequests: "Pengajuan Saya",
     history: "Riwayat Peminjaman",
@@ -109,7 +109,7 @@ const en: typeof id = {
   pages: {
     home: "Home",
     catalog: "Catalog",
-    roomSchedule: "Room Schedule",
+    roomSchedule: "Check Availability",
     howToBorrow: "How to Borrow",
     myRequests: "My Requests",
     history: "Borrowing History",

@@ -10,7 +10,7 @@ const id = {
   all: "Semua",
   /** facility categories (CATEGORY_ORDER) */
   categories: { hardware: "Hardware", room: "Ruangan", multimedia: "Multimedia", logistics: "Logistik" } as Record<FacilityCategory, string>,
-  levels: { direct: "Langsung", verification: "Verifikasi", letter: "Perlu surat" } as Record<PermissionLevel, string>,
+  levels: { direct: "Langsung", verification: "Verifikasi", letter: "Butuh surat" } as Record<PermissionLevel, string>,
   simulatedData: "Data simulasi untuk prototipe.",
 };
 

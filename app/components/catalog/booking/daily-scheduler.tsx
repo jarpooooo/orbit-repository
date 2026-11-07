@@ -1,15 +1,16 @@
 // app/components/catalog/booking/daily-scheduler.tsx
 //
 // "Kapan kamu pinjam?" (Figma 2.2 "Schedule · Pilih tanggal", node 149:1396) for "daily" facilities.
-// - Two-week calendar (Mon–Sun) with ‹ › paging, up to MAX_MONTHS_AHEAD ahead.
+// - One-week calendar (Mon–Sun) with ‹ › paging by week, up to MAX_MONTHS_AHEAD ahead.
 // - Picking works in two explicit steps, shown by the AMBIL / KEMBALI tiles (also buttons):
 //     1. "Ambil": a click sets the pick-up day, then the calendar switches to "Kembali".
 //     2. "Kembali": a click sets / moves the return day. Days the loan cannot reach (beyond maxDays, past a
 //        sold-out day) are dimmed, and hovering a reachable day previews the range.
 //   Clicking a day before the pick-up day, or the AMBIL tile, changes the pick-up day instead.
-//   A day shows a stock dot (aman / sedikit / habis); "Habis" and "Tutup" days cannot start or end a loan.
+//   A day cell is colored by stock (aman = green, sedikit = orange, habis = gray + red) and says "n unit";
+//   "Habis" and "Tutup" days cannot start or end a loan. The chosen days are yellow, the days between light yellow.
 //   Closed days in the middle are fine (the item stays with the borrower). Rules: validateSelection().
-// - "Jumlah unit" stepper capped by the stock for the whole loan.
+// - Right column: "Jumlah unit" (capped by the stock for the whole loan), then the draft summary.
 // - Draft summary with "Lanjut isi data" → /catalog/[id]/request?ambil=&kembali=&jumlah=.
 // Availability: getDailyAvailability() (app/data/availability.ts). Text: BOOKING_TEXT.daily.
 
@@ -38,20 +39,28 @@ import {
   type DailySelection,
 } from "@/app/lib/booking";
 import { addDays, dateNames, startOfWeek, toIsoDate } from "@/app/lib/date";
-import { ASIDE, ContinueButton, QuantityStepper, SECTION_TITLE, SummaryRows, moveFocus } from "./parts";
+import { ASIDE, ContinueButton, QuantityStepper, SummaryRows, moveFocus } from "./parts";
 import { dayLabel } from "./describe";
 import type { SchedulerProps } from "./registry";
 
-const WINDOW_DAYS = 14;
+const WINDOW_DAYS = 7;
 const CONTROL =
   "inline-flex size-9 items-center justify-center rounded-[10px] border-2 border-line-strong bg-surface text-ink transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
 
-/** Stock dot under the day number. */
-const DOT: Record<Exclude<StockLevel, "closed">, string> = {
-  ok: "bg-status-available",
-  low: "bg-status-attention",
-  out: "bg-stock-out",
+/** Day cell by stock: the same colors as the room calendar (session-scheduler.tsx). */
+const DAY_CELL: Record<StockLevel, string> = {
+  ok: "border-line-strong bg-status-available-bg text-status-available-fg hover:-translate-y-0.5",
+  low: "border-line-strong bg-status-attention-bg text-status-attention-fg hover:-translate-y-0.5",
+  out: "cursor-not-allowed border-line bg-status-unavailable-bg text-stock-out-fg",
+  closed: "cursor-not-allowed border-line bg-status-unavailable-bg text-ink-muted",
 };
+const LEGEND_SWATCH = {
+  ok: "bg-status-available-bg",
+  low: "bg-status-attention-bg",
+  out: "bg-status-unavailable-bg",
+  selected: "bg-brand-secondary",
+  between: "bg-surface-row",
+} as const;
 
 type Editing = "pickup" | "return";
 
@@ -219,11 +228,9 @@ export default function DailyScheduler({ facility: original, now }: SchedulerPro
                       ? "border-line-strong bg-brand-secondary text-on-secondary shadow-[0_4px_0_0_var(--color-shadow)]"
                       : between || isPreviewEnd
                         ? `border-line-strong bg-surface-row text-ink ${isPreviewEnd ? "border-dashed" : ""}`
-                        : closedOrOut || outOfRange
-                          ? `cursor-not-allowed border-line bg-status-unavailable-bg text-ink-muted ${outOfRange ? "opacity-50" : ""}`
-                          : beyondReach
-                            ? "cursor-not-allowed border-line bg-surface text-ink-muted opacity-50"
-                            : "border-line-strong bg-surface text-ink hover:-translate-y-0.5",
+                        : outOfRange
+                          ? "cursor-not-allowed border-line bg-status-unavailable-bg text-ink-muted opacity-50"
+                          : `${DAY_CELL[avail.level]} ${beyondReach ? "cursor-not-allowed opacity-45 hover:translate-y-0" : ""}`,
                   ].join(" ")}
                 >
                   <span className="font-display text-[20px] sm:text-[22px]">{d.getDate()}</span>
@@ -234,9 +241,9 @@ export default function DailyScheduler({ facility: original, now }: SchedulerPro
                   ) : avail.level === "closed" ? (
                     <span className="text-[10px] font-bold sm:text-[12px]">{t.stock.closed}</span>
                   ) : avail.level === "out" ? (
-                    <span className="text-[10px] font-extrabold text-stock-out-fg sm:text-[12px]">{t.stock.out}</span>
+                    <span className="text-[10px] font-extrabold sm:text-[12px]">{t.stock.out}</span>
                   ) : (
-                    <span aria-hidden className={`size-2 rounded-full border-[1.5px] border-line-strong ${DOT[avail.level]}`} />
+                    <span className="text-[10px] font-extrabold sm:text-[12px]">{t.unitsLeft(avail.units)}</span>
                   )}
                 </button>
               );
@@ -245,10 +252,10 @@ export default function DailyScheduler({ facility: original, now }: SchedulerPro
 
           {/* Legend */}
           <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-ink-muted sm:text-[13px]">
-            {(["ok", "low", "out"] as const).map((level) => (
-              <li key={level} className="flex items-center gap-[6px]">
-                <span aria-hidden className={`size-2 rounded-full ${DOT[level]}`} />
-                {t.stock[level]}
+            {(["ok", "low", "out", "selected", "between"] as const).map((key) => (
+              <li key={key} className="flex items-center gap-[6px]">
+                <span aria-hidden className={`size-3.5 rounded-[4px] border-[1.5px] border-line-strong ${LEGEND_SWATCH[key]}`} />
+                {key === "selected" ? t.selected : key === "between" ? t.loanDaysLegend : t.stock[key]}
               </li>
             ))}
           </ul>
@@ -289,12 +296,14 @@ export default function DailyScheduler({ facility: original, now }: SchedulerPro
           })}
         </div>
 
-        {/* Units */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className={SECTION_TITLE}>{t.unitsTitle}</h2>
-            <p className="text-[13px] text-ink-muted-on-page">{t.unitsAvailable(stock)}</p>
-          </div>
+      </div>
+
+      {/* Right column: units first (what you change next), then the draft summary */}
+      <div className="flex w-full flex-col gap-5 lg:sticky lg:top-[124px] lg:w-[380px] lg:shrink-0">
+      <section className={`${ASIDE} !static !w-full`}>
+        <h2 className="font-display text-[22px] font-normal leading-[normal] text-ink">{t.unitsTitle}</h2>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[13px] font-bold text-ink-muted">{t.unitsAvailable(stock)}</p>
           <QuantityStepper
             value={units}
             min={stock === 0 ? 0 : 1}
@@ -303,10 +312,8 @@ export default function DailyScheduler({ facility: original, now }: SchedulerPro
             labels={{ decrease: text.schedule.decrease, increase: text.schedule.increase, value: t.unitsTitle }}
           />
         </div>
-      </div>
-
-      {/* Draft summary */}
-      <aside className={ASIDE}>
+      </section>
+      <aside className={`${ASIDE} !static !w-full`}>
         <h2 className="font-display text-[24px] font-normal leading-[normal] text-ink">{t.summaryTitle}</h2>
         <div className="mt-4 flex items-center gap-4">
           <span className={`flex size-[72px] shrink-0 items-center justify-center rounded-[14px] border-2 border-line-strong ${CATEGORY_STYLE[f.category].panel}`}>
@@ -335,6 +342,7 @@ export default function DailyScheduler({ facility: original, now }: SchedulerPro
           icon={<ArrowIcon size={18} strokeWidth={2.5} aria-hidden />}
         />
       </aside>
+      </div>
     </div>
   );
 }

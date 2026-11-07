@@ -1,7 +1,7 @@
 // app/components/catalog/request-form.tsx
 //
 // "Ajukan" page content (Figma node 1:1342 / 1:1437 / 1:1538).
-//  - Query from the Schedule step, per booking mode (daily: ?ambil=&kembali=&jumlah=, session: ?hari=&sesi=&jumlah=);
+//  - Query from the Schedule step, per booking mode (daily: ?ambil=&kembali=&jumlah=, session: ?hari=&mulai=&selesai=&jumlah=);
 //    validated with parseSelectionQuery (if broken → ask to pick a schedule again)
 //  - Fields follow the permission level (LEVEL_REQUIREMENTS, project document "Level"):
 //      direct       → short form (name, student ID, study program)
@@ -35,6 +35,7 @@ import { LETTER_DRAFT_STORAGE_KEY, type LetterDraft } from "@/app/lib/permission
 import { useLiveFacility } from "@/app/lib/facility-store";
 import { useSession } from "@/app/lib/auth";
 import { loadProfile, submitRequest } from "@/app/lib/requests";
+import { NIM_PATTERN, normalizeNim } from "@/app/lib/nim";
 
 const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2 MB
 
@@ -59,7 +60,7 @@ type PersonalData = { name: string; studentId: string; studyProgram: string; pur
 function validatePersonalData(data: PersonalData, needsPurpose: boolean): Errors {
   const errors: Errors = {};
   if (data.name.trim().length < 3) errors.name = "nameRequired";
-  if (!/^\d{6,15}$/.test(data.studentId.trim())) errors.studentId = "studentIdFormat";
+  if (!NIM_PATTERN.test(normalizeNim(data.studentId))) errors.studentId = "studentIdFormat";
   if (data.studyProgram.trim().length < 3) errors.studyProgram = "studyProgramRequired";
   if (needsPurpose && data.purpose.trim().length < 5) errors.purpose = "purposeRequired";
   return errors;
@@ -232,7 +233,7 @@ export default function RequestForm({ facility: seed }: { facility: Facility }) 
       slug: f.id,
       code,
       name: name.trim(),
-      studentId: studentId.trim(),
+      studentId: normalizeNim(studentId),
       studyProgram: studyProgram.trim(),
       purpose: purpose.trim(),
     };
@@ -262,7 +263,7 @@ export default function RequestForm({ facility: seed }: { facility: Facility }) 
         facility: original,
         selection: booking,
         code,
-        borrower: { name: name.trim(), studentId: studentId.trim(), studyProgram: studyProgram.trim() },
+        borrower: { name: name.trim(), studentId: normalizeNim(studentId), studyProgram: studyProgram.trim() },
         purpose: needsPurpose ? purpose.trim() : "",
         letterFileName: needsLetter ? (letterFile?.name ?? null) : null,
         studentIdDeposit: needsDeposit,
@@ -277,7 +278,7 @@ export default function RequestForm({ facility: seed }: { facility: Facility }) 
     }
     // the Summary reads the saved request; this copy only covers the moment before it loads
     try {
-      sessionStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify({ code: result.code, name: name.trim(), studentId: studentId.trim() }));
+      sessionStorage.setItem(REQUEST_STORAGE_KEY, JSON.stringify({ code: result.code, name: name.trim(), studentId: normalizeNim(studentId) }));
       sessionStorage.removeItem(LETTER_DRAFT_STORAGE_KEY);
     } catch {
       /* ignore */
@@ -352,12 +353,13 @@ export default function RequestForm({ facility: seed }: { facility: Facility }) 
                   <input
                     {...errorProps("studentId", errors.studentId)}
                     value={studentId}
-                    onChange={(e) => setStudentId(e.target.value.replace(/\D/g, ""))}
-                    inputMode="numeric"
-                    maxLength={15}
+                    onChange={(e) => setStudentId(e.target.value.toUpperCase())}
+                    autoCapitalize="characters"
+                    maxLength={22}
                     placeholder={t.placeholders.studentId}
                     className={`${INPUT} ${borderFor(errors.studentId)}`}
                   />
+                  {!errors.studentId && <p className="text-[12px] text-ink-muted">{t.nimHint}</p>}
                 </FormField>
               </div>
 
@@ -451,6 +453,18 @@ export default function RequestForm({ facility: seed }: { facility: Facility }) 
                   error={message(errors.studentIdDeposit)}
                 />
               )}
+              {/* Borrowing rules (per booking mode) right before the agreement that accepts them */}
+              <section aria-labelledby="request-rules" className="flex flex-col gap-2 rounded-[14px] border-2 border-line-strong bg-surface-warm p-4 sm:p-5">
+                <h2 id="request-rules" className="font-display text-[20px] font-normal leading-[normal] text-ink">
+                  {t.rulesTitle}
+                </h2>
+                <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[14px] leading-[1.5] text-ink-body">
+                  {t.rules[mode].map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+                <p className="text-[12px] text-ink-muted">{t.rulesNote}</p>
+              </section>
               <CheckField
                 field="agreement"
                 checked={agreed}

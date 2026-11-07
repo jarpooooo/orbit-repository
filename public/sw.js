@@ -5,18 +5,29 @@
 // are always fresh. Firebase traffic is not touched (other origins are ignored).
 // Bump VERSION when offline.html or this file changes; old caches are deleted on activate.
 
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `pinjamtedi-offline-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/img/logo.svg"];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: "reload" }))))
-      .then(() => self.skipWaiting()),
+// Firebase Hosting (cleanUrls) answers /offline.html with a 301 to /offline. A redirected response cannot be
+// used for a page navigation, so each file is stored as a fresh, non-redirected copy of its body.
+async function precache() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(
+    PRECACHE.map(async (url) => {
+      const response = await fetch(url, { cache: "reload" });
+      if (!response.ok) throw new Error(`precache ${url}: ${response.status}`);
+      const clean = response.redirected
+        ? new Response(await response.blob(), { status: 200, headers: { "Content-Type": response.headers.get("Content-Type") ?? "text/html" } })
+        : response;
+      await cache.put(url, clean);
+    }),
   );
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {

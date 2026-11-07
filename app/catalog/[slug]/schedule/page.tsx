@@ -4,6 +4,7 @@
 // Thin server page: looks the facility up by slug, then hands it to the interactive client component.
 // (Split because generateStaticParams is server-only, and this project uses Cache Components.)
 
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import SchedulePicker from "@/app/components/catalog/schedule-picker";
@@ -30,7 +31,16 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default async function SchedulePage({ params }: { params: Params }) {
+export default function SchedulePage({ params }: { params: Params }) {
+  // Suspense: reading params here (and ?hari= in the room scheduler) must not block an instant navigation
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-page" />}>
+      <ScheduleContent params={params} />
+    </Suspense>
+  );
+}
+
+async function ScheduleContent({ params }: { params: Params }) {
   const f = getFacility((await params).slug);
   if (!f) notFound();
   // signed-in users only: the request is saved under the account (catalog + detail stay public)

@@ -10,7 +10,8 @@
 // The saved request (requests/{code}, app/lib/requests.ts) gives the borrower and the live status (e.g. cancelled);
 // until it loads, name & student ID come from sessionStorage REQUEST_STORAGE_KEY (written by the form). Empty → "-".
 // Text: BOOKING_TEXT.summary (app/i18n/booking-flow.ts); facility content via localizeFacility.
-// The QR code here is DECORATIVE (a pattern from the code, like "Kode QR contoh" in Figma). Use a real QR once there is an API.
+// No QR / pickup code: staff find the request by name or NIM. The "Saat ambil / Saat datang" box lists what to bring,
+// one reminder, and links to the full rules (/how-to-borrow#ketentuan).
 
 "use client";
 
@@ -27,7 +28,8 @@ import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
 import { localizeFacility, type FacilityView } from "@/app/i18n/facilities";
 import { useLocale } from "@/app/components/layout/language";
-import { REQUEST_STORAGE_KEY, parseSubmittedQuery } from "@/app/lib/booking";
+import { REQUEST_STORAGE_KEY, RETURN_BEFORE, parseSubmittedQuery } from "@/app/lib/booking";
+import { formatTimeRange } from "@/app/i18n/common";
 import { useLiveFacility } from "@/app/lib/facility-store";
 import { INITIAL_STATUS, REQUEST_STATUS_COLORS, useRequest } from "@/app/lib/requests";
 import { MY_REQUESTS_TEXT } from "@/app/i18n/my-requests";
@@ -60,40 +62,6 @@ function buildNextSteps(f: FacilityView, mode: BookingMode, when: string, until:
   ];
 }
 
-/** Deterministic checkerboard pattern from the code (decoration only, not a scannable QR). */
-function decorativeQrPattern(seed: string) {
-  // FNV-1a hash → mulberry32 PRNG
-  let state = 2166136261;
-  for (const ch of seed) state = Math.imul(state ^ ch.charCodeAt(0), 16777619);
-  const random = () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-
-  const size = 13;
-  const finderCorners = [[0, 0], [size - 3, 0], [0, size - 3]] as const;
-  /** 1 = filled, 0 = empty, -1 = not part of a finder pattern */
-  const finderCell = (x: number, y: number) => {
-    for (const [cx, cy] of finderCorners) {
-      const inside = x >= cx && x < cx + 3 && y >= cy && y < cy + 3;
-      const margin = x >= cx - 1 && x < cx + 4 && y >= cy - 1 && y < cy + 4;
-      if (inside) return x === cx + 1 && y === cy + 1 ? 0 : 1; // 3x3 ring
-      if (margin) return 0; // gap around it
-    }
-    return -1;
-  };
-
-  const cells: [number, number][] = [];
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const finder = finderCell(x, y);
-      if (finder === 1 || (finder === -1 && random() > 0.5)) cells.push([x, y]);
-    }
-  }
-  return { size, cells };
-}
 
 function StepMarker({ state }: { state: StepState }) {
   if (state === "done") {
@@ -156,7 +124,6 @@ export default function RequestSummary({ facility: seed }: { facility: Facility 
     );
   }
 
-  const qr = decorativeQrPattern(request.code);
   const selectionMode = modeOf(request.selection);
   const nextSteps = buildNextSteps(
     f,
@@ -221,18 +188,8 @@ export default function RequestSummary({ facility: seed }: { facility: Facility 
             </dl>
           </div>
 
-          {/* Decorative QR: always dark cells on white (a QR must stay dark-on-light to scan) */}
-          <div
-            role="img"
-            aria-label={t.qrLabel(request.code)}
-            className="shrink-0 self-center rounded-[12px] border-2 border-line-strong bg-white p-2 md:self-start"
-          >
-            <svg width="130" height="130" viewBox={`0 0 ${qr.size} ${qr.size}`} shapeRendering="crispEdges" aria-hidden>
-              {qr.cells.map(([x, y]) => (
-                <rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="var(--color-navy-900)" />
-              ))}
-            </svg>
-          </div>
+          {/* What to bring when picking up / arriving (no code needed) */}
+          <BringBox f={f} mode={mode} t={t.bringBox} returnTime={formatTimeRange(RETURN_BEFORE, locale)} />
         </div>
 
         {/* Next steps */}
@@ -261,6 +218,42 @@ export default function RequestSummary({ facility: seed }: { facility: Facility 
         </Link>
       </div>
     </SummaryShell>
+  );
+}
+
+function BringBox({ f, mode, t, returnTime }: { f: FacilityView; mode: BookingMode; t: SummaryText["bringBox"]; returnTime: string }) {
+  const bring = [
+    levelNeeds(f.level, "depositStudentId") ? t.ktmDeposit : t.ktmShow,
+    ...(f.level === "letter" ? [t.letter] : []),
+    t.noCode,
+  ];
+  return (
+    <section
+      aria-labelledby="summary-bring"
+      className="flex w-full flex-col gap-3 rounded-[16px] border-2 border-line-strong bg-surface-warm p-4 md:w-[340px] md:shrink-0"
+    >
+      <h2 id="summary-bring" className="font-display text-[22px] font-normal leading-[normal] text-ink">
+        {t.title[mode]}
+      </h2>
+      <div className="flex flex-col gap-1">
+        <span className="text-[12px] font-extrabold text-ink-muted">{t.bring}</span>
+        <ul className="flex list-disc flex-col gap-1 pl-5 text-[14px] leading-[1.45] text-ink-body">
+          {bring.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <p className="rounded-[12px] bg-surface-row px-3 py-2 text-[13px] leading-[1.45] text-ink">
+        <span className="font-extrabold">{t.remember}</span> {t.remind[mode](returnTime)}
+      </p>
+      <div className="flex flex-col gap-[2px] text-[13px] leading-[1.4]">
+        <span className="font-bold text-ink">{t.place[mode](f.location)}</span>
+        <span className="text-ink-muted">{t.hours[mode]}</span>
+      </div>
+      <Link href="/how-to-borrow#ketentuan" className="text-[13px] font-extrabold text-link underline underline-offset-4">
+        {t.rulesLink} →
+      </Link>
+    </section>
   );
 }
 

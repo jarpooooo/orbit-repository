@@ -105,8 +105,8 @@ export const CATEGORY_BOOKING_MODE: Record<FacilityCategory, BookingMode> = {
 /** Default loan length for "daily" facilities (days, pick-up and return day included). */
 export const DEFAULT_MAX_DAYS = 3;
 
-/** Default sessions of a "session" facility: indexes into SESSIONS (app/lib/booking.ts), all four 2-hour slots. */
-export const DEFAULT_SESSION_IDS: readonly number[] = [0, 1, 2, 3];
+/** Default longest booking of a "session" facility (hours, inside 08.00–17.00). Small rooms many people queue for. */
+export const DEFAULT_MAX_HOURS = 4;
 
 /* ---------------------------------- places ---------------------------------- */
 
@@ -155,8 +155,8 @@ export type Facility = {
   bookingMode?: BookingMode;
   /** "daily": longest loan in days (default DEFAULT_MAX_DAYS) */
   maxDays?: number;
-  /** "session": indexes into SESSIONS (app/lib/booking.ts) this room offers; default all */
-  sessions?: readonly number[];
+  /** "session": longest booking in hours (default DEFAULT_MAX_HOURS; 9 = the whole service day 08.00–17.00) */
+  maxHours?: number;
 };
 
 /** Several rooms of one type: `<group>-1` … `<group>-n`. Names: FACILITY_TEXT.rooms (e.g. "Lab Komputer 1"). */
@@ -185,11 +185,11 @@ export const FACILITIES: readonly Facility[] = [
 
   /* B. Rooms. [dummy] room counts and capacities */
   ...rooms("discussion-room", 4, { category: "room", level: "verification", illustration: "catalog/ruang-diskusi", capacity: 10, location: "tedi-2", subcategory: "ruang-diskusi" }),
-  ...rooms("computer-lab", 3, { category: "room", level: "verification", illustration: "catalog/komputer", capacity: 30, location: "computer-lab", subcategory: "kursi-pc-lab" }),
-  ...rooms("classroom", 4, { category: "room", level: "verification", illustration: "catalog/ruang-kelas", capacity: 40, location: "tedi-3", subcategory: "ruang-diskusi" }),
-  { id: "auditorium", category: "room", level: "letter", illustration: "catalog/auditorium", units: 1, capacity: 200, location: "auditorium" },
-  { id: "multimedia-room", category: "room", level: "verification", illustration: "catalog/kamera", units: 1, capacity: 15, location: "multimedia-studio" },
-  { id: "multipurpose-field", category: "room", level: "letter", illustration: "catalog/ruang-diskusi", units: 1, capacity: 300, location: "field" }, // closest
+  ...rooms("computer-lab", 3, { category: "room", level: "verification", illustration: "catalog/komputer", capacity: 30, maxHours: 8, location: "computer-lab", subcategory: "kursi-pc-lab" }),
+  ...rooms("classroom", 4, { category: "room", level: "verification", illustration: "catalog/ruang-kelas", capacity: 40, maxHours: 8, location: "tedi-3", subcategory: "ruang-diskusi" }),
+  { id: "auditorium", category: "room", level: "letter", illustration: "catalog/auditorium", units: 1, capacity: 200, maxHours: 9, location: "auditorium" },
+  { id: "multimedia-room", category: "room", level: "verification", illustration: "catalog/kamera", units: 1, capacity: 15, maxHours: 8, location: "multimedia-studio" },
+  { id: "multipurpose-field", category: "room", level: "letter", illustration: "catalog/ruang-diskusi", units: 1, capacity: 300, maxHours: 9, location: "field" }, // closest
 
   /* C. Multimedia */
   { id: "camera", category: "multimedia", level: "letter", illustration: "catalog/kamera", units: 1, subcategory: "kamera-acara" },
@@ -254,4 +254,4 @@ export const bookingMode = (f: Facility): BookingMode => f.bookingMode ?? CATEGO
 
 export const maxDays = (f: Facility) => f.maxDays ?? DEFAULT_MAX_DAYS;
 
-export const facilitySessions = (f: Facility) => f.sessions ?? DEFAULT_SESSION_IDS;
+export const maxHours = (f: Facility) => f.maxHours ?? DEFAULT_MAX_HOURS;

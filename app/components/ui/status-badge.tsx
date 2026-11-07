@@ -1,6 +1,6 @@
 // app/components/ui/status-badge.tsx
 //
-// Pill badge with a colored dot ("Verifikasi", "Perlu surat", "Disetujui", ...).
+// Pill badge with a colored dot ("Verifikasi", "Butuh surat", "Disetujui", ...).
 // Colors come from STATUS_STYLES in facilities.ts; the default text from FACILITY_TEXT.statuses
 // (app/i18n/facilities.ts) in the current language. `label` overrides the text.
 

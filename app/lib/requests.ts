@@ -69,7 +69,7 @@ export const isCancellable = (r: StoredRequest, today = toIsoDate(new Date())) =
 function selectionFields(s: BookingSelection) {
   return s.mode === "daily"
     ? { pickupDate: s.pickupDate, returnDate: s.returnDate, units: s.units }
-    : { date: s.date, sessionId: s.sessionId, participants: s.participants };
+    : { date: s.date, startHour: s.startHour, endHour: s.endHour, participants: s.participants };
 }
 
 function fromDocument(code: string, d: Record<string, unknown>): StoredRequest | null {
@@ -77,7 +77,7 @@ function fromDocument(code: string, d: Record<string, unknown>): StoredRequest |
   if (!sel || typeof d.facilityId !== "string") return null;
   const selection: BookingSelection =
     d.mode === "session"
-      ? { mode: "session", date: String(sel.date), sessionId: Number(sel.sessionId), participants: Number(sel.participants) }
+      ? { mode: "session", date: String(sel.date), startHour: Number(sel.startHour), endHour: Number(sel.endHour), participants: Number(sel.participants) }
       : { mode: "daily", pickupDate: String(sel.pickupDate), returnDate: String(sel.returnDate), units: Number(sel.units) };
   const b = (d.borrower ?? {}) as Record<string, unknown>;
   return {
@@ -153,7 +153,7 @@ export async function loadProfile(uid: string): Promise<Partial<Borrower>> {
   try {
     const snap = await getDoc(doc(db, "users", uid));
     const d = snap.data();
-    return d ? { name: d.name, studentId: typeof d.nim === "string" ? d.nim.replace(/\D/g, "") : undefined, studyProgram: d.program } : {};
+    return d ? { name: d.name, studentId: typeof d.nim === "string" ? d.nim : undefined, studyProgram: d.program } : {};
   } catch {
     return {};
   }

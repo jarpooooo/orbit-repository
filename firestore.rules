@@ -71,14 +71,15 @@ service cloud.firestore {
             && isoDate(s.pickupDate) && isoDate(s.returnDate) && s.returnDate >= s.pickupDate
             && count(s.units, 50) && d.startDate == s.pickupDate)
           || (d.mode == 'session'
-            && s.keys().hasOnly(['date', 'sessionId', 'participants']) && s.keys().hasAll(['date', 'sessionId', 'participants'])
-            && isoDate(s.date) && s.sessionId is int && s.sessionId >= 0 && s.sessionId <= 3
+            && s.keys().hasOnly(['date', 'startHour', 'endHour', 'participants']) && s.keys().hasAll(['date', 'startHour', 'endHour', 'participants'])
+            && isoDate(s.date) && s.startHour is int && s.endHour is int
+            && s.startHour >= 8 && s.endHour <= 17 && s.endHour > s.startHour && s.endHour - s.startHour <= 9
             && count(s.participants, 500) && d.startDate == s.date)
         );
       }
       function validBorrower(b) {
         return b is map && b.keys().hasOnly(['name', 'studentId', 'studyProgram'])
-          && shortString(b.name, 120) && b.studentId is string && b.studentId.matches('^[0-9]{6,15}$')
+          && shortString(b.name, 120) && b.studentId is string && b.studentId.matches('^[0-9]{2}/[0-9]{6}/[A-Z]{2}/[0-9]{5}$')
           && shortString(b.studyProgram, 120);
       }
       function validNewRequest() {

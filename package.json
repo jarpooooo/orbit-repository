@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/static-files.mjs && next build",
-    "start": "firebase serve --only hosting --port 5050",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint",
     "emulators": "node scripts/emulators.mjs",
     "seed": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed-facilities.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy:firebase": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/deploy-firebase.mjs"
   },
   "dependencies": {
     "docx-preview": "^0.4.1",

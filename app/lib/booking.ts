@@ -4,14 +4,15 @@
 // between the request steps (Jadwal → Ajukan → (Pratinjau surat) → Ringkasan). See toSelectionQuery().
 
 import type { Locale } from "@/app/i18n/locale";
-import { bookingMode, maxDays, maxQuantity, type Facility } from "@/app/data/facilities";
-import { getDailyAvailability, getSessionAvailability, isClosedDay } from "@/app/data/availability";
+import { bookingMode, maxDays, maxHours, maxQuantity, type Facility } from "@/app/data/facilities";
+import { getDailyAvailability, getHourAvailability, isClosedDay } from "@/app/data/availability";
 import { addDays, addMonths, diffInDays, parseIsoDate, toIsoDate, toNoon } from "./date";
 
-export const SESSIONS = ["08.00 – 10.00", "10.00 – 12.00", "13.00 – 15.00", "15.00 – 17.00"] as const;
-export const SESSION_START_HOURS = [8, 10, 13, 15] as const;
-/** End of the last session; after this, today can no longer be booked for a room. */
-const CLOSING_HOUR = 17;
+/** Rooms are booked per hour inside the service hours: a booking is start hour → end hour (08 → 10 = 08.00–10.00). */
+export const OPEN_HOUR = 8;
+export const CLOSE_HOUR = 17;
+/** Every hour a booking can start at: 8 … 16. */
+export const BOOKABLE_HOURS: readonly number[] = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, i) => OPEN_HOUR + i);
 /** End of the pick-up window ("kapan saja 08.00–16.00"); after this, today can no longer be a pick-up day. */
 const PICKUP_CLOSING_HOUR = 16;
 
@@ -23,18 +24,16 @@ export const REQUEST_STORAGE_KEY = "pinjamtedi:pengajuan";
 
 const REQUEST_CODE_PATTERN = /^PJM-\d{4}-\d{4}$/;
 
-/** Session label for the UI: "08.00 – 10.00" (Indonesian) or "08:00 – 10:00" (English). */
-export const sessionLabel = (index: number, locale: Locale = "id") =>
-  locale === "en" ? SESSIONS[index].replaceAll(".", ":") : SESSIONS[index];
+/** "08.00" (Indonesian) or "08:00" (English) */
+export const hourLabel = (hour: number, locale: Locale = "id") => `${String(hour).padStart(2, "0")}${locale === "en" ? ":" : "."}00`;
 
-/** "08.00" from "08.00 – 10.00" ("08:00" in English). */
-export const sessionStart = (index: number, locale: Locale = "id") => sessionLabel(index, locale).split("–")[0].trim();
-export const sessionEnd = (index: number, locale: Locale = "id") => sessionLabel(index, locale).split("–")[1].trim();
+/** "08.00 – 10.00" */
+export const timeRangeLabel = (start: number, end: number, locale: Locale = "id") => `${hourLabel(start, locale)} – ${hourLabel(end, locale)}`;
 
-/** Today, or the next working day when today is Sunday or already past closing time (room sessions). */
+/** Today, or the next working day when today is Sunday or the last bookable hour (16.00) has started. */
 export function firstBookableDate(now: Date) {
   let d = toNoon(now);
-  if (now.getHours() >= CLOSING_HOUR) d = addDays(d, 1);
+  if (now.getHours() >= CLOSE_HOUR - 1) d = addDays(d, 1);
   if (d.getDay() === 0) d = addDays(d, 1);
   return d;
 }
@@ -48,9 +47,9 @@ export function firstPickupDate(now: Date) {
 /** Last day that can be booked (both modes). */
 export const lastBookableDate = (now: Date) => addMonths(toNoon(now), MAX_MONTHS_AHEAD);
 
-/** True when the session on `day` has already started. */
-export const isSessionPast = (day: Date, index: number, now: Date) =>
-  toNoon(day).getTime() === toNoon(now).getTime() && now.getHours() >= SESSION_START_HOURS[index];
+/** True when `hour` on `day` has already started (today only). */
+export const isHourPast = (day: Date, hour: number, now: Date) =>
+  toNoon(day).getTime() === toNoon(now).getTime() && now.getHours() >= hour;
 
 /** SIMULATION. Replace with a code issued by the API. */
 export function generateRequestCode(now = new Date()) {
@@ -70,13 +69,15 @@ export type DailySelection = {
   units: number;
 };
 
-/** "session" facilities (rooms): one day, one 2-hour session, number of participants. */
+/** "session" facilities (rooms): one day, a start and end hour (custom, max maxHours()), number of participants. */
 export type SessionSelection = {
   mode: "session";
   /** yyyy-mm-dd */
   date: string;
-  /** index into SESSIONS */
-  sessionId: number;
+  /** 8 … 16 (OPEN_HOUR … CLOSE_HOUR - 1) */
+  startHour: number;
+  /** 9 … 17, after startHour */
+  endHour: number;
   participants: number;
 };
 
@@ -91,11 +92,12 @@ export type ScheduleErrorKey =
   | "unavailableDay"
   | "unitsOverStock"
   | "dayRequired"
-  | "sessionRequired"
-  | "sessionFull"
+  | "timeRequired"
+  | "timeTaken"
+  | "tooLongHours"
   | "quantityRange"
   | "outOfRange"
-  | "sessionPast";
+  | "timePast";
 
 /** Pick-up / return hours of "daily" loans (Figma 2.2: pick up any time 08.00–16.00, return before 16.00). */
 export const PICKUP_HOURS = "08.00–16.00";
@@ -133,7 +135,8 @@ export const isHandoverDay = (facilityId: string, date: string) => getDailyAvail
  * "daily": pick-up from firstPickupDate(), return the same day or later, at most maxDays calendar days
  * (closed days in the middle count but are allowed), pick-up and return day open and not sold out,
  * no sold-out day in between, units ≤ the stock for the whole loan.
- * "session": a day from firstBookableDate(), not closed, a free session the room offers, participants ≤ capacity.
+ * "session": a day from firstBookableDate(), not closed, start < end inside 08.00–17.00, at most maxHours(),
+ * not started yet (today), every hour free, participants ≤ capacity.
  */
 export function validateSelection(s: BookingSelection, f: Facility, now: Date = new Date()): ScheduleErrorKey | null {
   if (s.mode !== bookingMode(f)) return s.mode === "daily" ? "dayRequired" : "pickupRequired";
@@ -152,11 +155,12 @@ export function validateSelection(s: BookingSelection, f: Facility, now: Date = 
   if (!parseIsoDate(s.date)) return "dayRequired";
   if (s.date < toIsoDate(firstBookableDate(now)) || s.date > last) return "outOfRange";
   if (isClosedDay(s.date)) return "unavailableDay";
-  const slot = getSessionAvailability(f.id, s.date).find((x) => x.sessionId === s.sessionId);
-  if (!slot) return "sessionRequired";
-  const day = parseIsoDate(s.date)!;
-  if (isSessionPast(day, s.sessionId, now)) return "sessionPast";
-  if (slot.status === "full") return "sessionFull";
+  if (!Number.isInteger(s.startHour) || !Number.isInteger(s.endHour) || s.startHour < OPEN_HOUR || s.endHour > CLOSE_HOUR || s.endHour <= s.startHour)
+    return "timeRequired";
+  if (s.endHour - s.startHour > maxHours(f)) return "tooLongHours";
+  if (isHourPast(parseIsoDate(s.date)!, s.startHour, now)) return "timePast";
+  const hours = getHourAvailability(f.id, s.date);
+  for (let h = s.startHour; h < s.endHour; h++) if (hours.find((x) => x.hour === h)?.status !== "free") return "timeTaken";
   if (!Number.isInteger(s.participants) || s.participants < 1 || s.participants > maxQuantity(f)) return "quantityRange";
   return null;
 }
@@ -166,14 +170,14 @@ export function validateSelection(s: BookingSelection, f: Facility, now: Date = 
 /**
  * The selection travels in the query string between Jadwal → Ajukan → (Pratinjau surat) → Ringkasan:
  *   daily:   ?ambil=2026-10-26&kembali=2026-10-28&jumlah=1
- *   session: ?hari=2026-10-26&sesi=0&jumlah=120
+ *   session: ?hari=2026-10-26&mulai=8&selesai=10&jumlah=120  (hours: 08.00–10.00)
  * plus &kode=PJM-… on Ringkasan. Names stay Indonesian (public URLs).
  */
 export function toSelectionQuery(s: BookingSelection, code?: string) {
   const params =
     s.mode === "daily"
       ? new URLSearchParams({ ambil: s.pickupDate, kembali: s.returnDate, jumlah: String(s.units) })
-      : new URLSearchParams({ hari: s.date, sesi: String(s.sessionId), jumlah: String(s.participants) });
+      : new URLSearchParams({ hari: s.date, mulai: String(s.startHour), selesai: String(s.endHour), jumlah: String(s.participants) });
   if (code) params.set("kode", code);
   return params.toString();
 }
@@ -184,7 +188,7 @@ export function parseSelectionQuery(params: URLSearchParams, f: Facility): Booki
   const selection: BookingSelection =
     bookingMode(f) === "daily"
       ? { mode: "daily", pickupDate: params.get("ambil") ?? "", returnDate: params.get("kembali") ?? "", units: quantity }
-      : { mode: "session", date: params.get("hari") ?? "", sessionId: Number(params.get("sesi") ?? "-1"), participants: quantity };
+      : { mode: "session", date: params.get("hari") ?? "", startHour: Number(params.get("mulai") ?? "-1"), endHour: Number(params.get("selesai") ?? "-1"), participants: quantity };
   return validateSelection(selection, f) ? null : selection;
 }
 
@@ -205,9 +209,11 @@ export function parseSubmittedQuery(params: URLSearchParams, f: Facility) {
     return { code, selection: { mode: "daily", pickupDate, returnDate, units: quantity } as BookingSelection };
   }
   const date = params.get("hari") ?? "";
-  const sessionId = Number(params.get("sesi") ?? "-1");
-  if (!parseIsoDate(date) || !Number.isInteger(sessionId) || sessionId < 0 || sessionId >= SESSIONS.length) return null;
-  return { code, selection: { mode: "session", date, sessionId, participants: quantity } as BookingSelection };
+  const startHour = Number(params.get("mulai") ?? "-1");
+  const endHour = Number(params.get("selesai") ?? "-1");
+  if (!parseIsoDate(date) || !Number.isInteger(startHour) || !Number.isInteger(endHour) || startHour < OPEN_HOUR || endHour > CLOSE_HOUR || endHour <= startHour)
+    return null;
+  return { code, selection: { mode: "session", date, startHour, endHour, participants: quantity } as BookingSelection };
 }
 
 /** First day of the selection (pick-up day / session day), yyyy-mm-dd. */
