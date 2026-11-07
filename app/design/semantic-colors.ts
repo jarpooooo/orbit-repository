@@ -25,7 +25,7 @@ export const SEMANTIC_COLORS = {
     unavailable: COLOR_VARIANTS.slate, // Terisi, Habis, Sedang dipinjam, Tidak tersedia
   },
 
-  /** Facility permission level (Figma: Langsung / Verifikasi / Perlu surat). Keys match PermissionLevel in facilities.ts. */
+  /** Facility permission level (Figma: Langsung / Verifikasi / Butuh surat). Keys match PermissionLevel in facilities.ts. */
   level: {
     direct: COLOR_VARIANTS.mint,
     verification: COLOR_VARIANTS.sun,

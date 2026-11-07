@@ -8,6 +8,8 @@
 
 import {
   bookingMode,
+  maxDays,
+  maxHours,
   countInGroup,
   facilityLocation,
   facilityStatus,
@@ -15,7 +17,6 @@ import {
   maxQuantity,
   type AvailabilityStatus,
   type Facility,
-  type FacilityCategory,
   type FacilityUnit,
   type LocationKey,
   type PermissionLevel,
@@ -29,7 +30,7 @@ import type { Dictionary, Locale } from "./locale";
 type Copy = { name: string; description: string };
 
 const id = {
-  statuses: { verification: "Verifikasi", letter: "Perlu surat", borrowed: "Sedang dipinjam", direct: "Langsung" } as Record<AvailabilityStatus, string>,
+  statuses: { verification: "Verifikasi", letter: "Butuh surat", borrowed: "Sedang dipinjam", direct: "Langsung" } as Record<AvailabilityStatus, string>,
   /** "Catatan izin" box on the Detail page (text exactly as in Figma). */
   permissionNotes: {
     verification: { title: "Verifikasi admin.", text: "Isi form dan titipkan KTM di tempat pengelola. Pengajuan dicek laboran/TU dulu." },
@@ -76,7 +77,8 @@ const id = {
     field: "Lapangan Gedung TEDI",
   } as Record<LocationKey, string>,
   /** [dummy] loan length per category */
-  maxDuration: { hardware: "3 hari", room: "2 jam per sesi", multimedia: "2 hari", logistics: "1 hari" } as Record<FacilityCategory, string>,
+  /** longest loan, from the facility data (maxDays / maxHours) */
+  maxDuration: { daily: (n: number) => `${n} hari`, session: (n: number) => `${n} jam · 08.00–17.00` },
   specLabels: { location: "Lokasi", stock: "Stok", capacity: "Kapasitas", rooms: "Jumlah ruangan", maxDuration: "Durasi maks.", deposit: "Jaminan" },
   deposit: { none: "Tanpa jaminan, cukup tunjukkan KTM", studentId: "KTM dititipkan ke pengelola" },
   available: (quantity: string) => `${quantity} tersedia`,
@@ -172,7 +174,7 @@ const en: typeof id = {
     auditorium: "Auditorium, 1st floor",
     field: "TEDI Building field",
   },
-  maxDuration: { hardware: "3 days", room: "2 hours per session", multimedia: "2 days", logistics: "1 day" },
+  maxDuration: { daily: (n) => `${n} ${n === 1 ? "day" : "days"}`, session: (n) => `${n} hours · 08:00–17:00` },
   specLabels: { location: "Location", stock: "Stock", capacity: "Capacity", rooms: "Rooms", maxDuration: "Max. duration", deposit: "Deposit" },
   deposit: { none: "No deposit, just show your student ID", studentId: "Student ID left with the manager" },
   available: (quantity) => `${quantity} available`,
@@ -286,7 +288,7 @@ export function localizeFacility(f: Facility, locale: Locale): FacilityView {
   } else {
     specs.push([l.stock, t.quantity(f.units, unit)]);
   }
-  specs.push([l.maxDuration, t.maxDuration[f.category]]);
+  specs.push([l.maxDuration, isRoom ? t.maxDuration.session(maxHours(f)) : t.maxDuration.daily(maxDays(f))]);
   specs.push([l.deposit, f.level === "direct" ? t.deposit.none : t.deposit.studentId]);
 
   return { ...f, ...facilityCopy(f, t), location, status, unit, maxQuantity: max, availability, meta, specs };

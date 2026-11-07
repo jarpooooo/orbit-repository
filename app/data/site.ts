@@ -1,8 +1,8 @@
 // app/data/site.ts
 //
-// Shared site info for SEO: used by the root layout (metadata), scripts/static-files.mjs (manifest, robots,
-// sitemap), and the home page JSON-LD. Plain TS without imports: the build script runs it directly in Node.
-// The site URL comes from NEXT_PUBLIC_SITE_URL (set in .github/workflows/firebase-hosting.yml).
+// Shared site info for SEO: used by the root layout (metadata), sitemap.ts, robots.ts, manifest.ts,
+// opengraph-image.tsx, and the home page JSON-LD.
+// The site URL comes from NEXT_PUBLIC_SITE_URL (set it on deploy).
 // If it is empty: production builds use the Firebase Hosting domain, development uses localhost.
 
 export const SITE = {
@@ -21,8 +21,8 @@ export const BASE_OPEN_GRAPH = {
   locale: "id_ID",
   alternateLocale: ["en_US"],
   siteName: SITE.name,
-  // app/opengraph-image.png. Listed here because a page that sets its own openGraph loses the inherited file image.
-  images: [{ url: "/opengraph-image.png", width: 1200, height: 630, alt: `${SITE.name}: peminjaman alat dan ruang DTEDI Sekolah Vokasi UGM` }],
+  // app/opengraph-image.tsx. Listed here because a page that sets its own openGraph loses the inherited file image.
+  images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: `${SITE.name}: peminjaman alat dan ruang DTEDI Sekolah Vokasi UGM` }],
 };
 
 export const SITE_URL = (

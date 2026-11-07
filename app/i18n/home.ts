@@ -6,9 +6,9 @@ import type { SubcategoryKey } from "@/app/data/facilities";
 import type { Dictionary } from "./locale";
 
 /** Simulated rooms / items in "Ringkasan hari ini" (keys used by components/home/today-summary.tsx). */
-export type SummaryRoomKey = "discussionA" | "seminar" | "pcLab" | "discussionB";
 export type SummaryItemKey = "esp32" | "hdmi" | "discussionA" | "sensorKit";
-export type SlotStatus = "free" | "taken" | "lastSlot";
+/** today's state of a room on the home card: many free hours / a few / none */
+export type SlotStatus = "free" | "few" | "full";
 /** Steps in the "Empat langkah" card (components/home/how-to-borrow.tsx). */
 export type HomeStepKey = "search" | "schedule" | "request" | "pickup";
 export type NotificationCtaState = "idle" | "on" | "blocked";
@@ -50,17 +50,13 @@ const id = {
 
   todaySummary: {
     freeRoomsTitle: "Ruang kosong hari ini",
-    viewSchedule: "Lihat jadwal",
+    viewSchedule: "Cek ketersediaan",
     popularTitle: "Paling sering dipinjam",
     viewCatalog: "Lihat katalog",
-    columns: { time: "Jam", room: "Ruang", status: "Status", rank: "#", item: "Barang / ruang", category: "Kategori", countShort: "Pinjam", countLong: "Minggu ini" },
-    slotStatus: { free: "Kosong", taken: "Terisi", lastSlot: "Sisa 1 slot" } as Record<SlotStatus, string>,
-    rooms: {
-      discussionA: "Ruang Diskusi 1",
-      seminar: "Auditorium",
-      pcLab: "Lab Komputer 1, 8 kursi",
-      discussionB: "Ruang Diskusi 2",
-    } as Record<SummaryRoomKey, string>,
+    columns: { time: "Jam kosong", room: "Ruang", status: "Status", rank: "#", item: "Barang / ruang", category: "Kategori", countShort: "Pinjam", countLong: "Minggu ini" },
+    slotStatus: { free: () => "Tersedia", few: (n: number) => `Sisa ${n} jam`, full: () => "Penuh" } as Record<SlotStatus, (n: number) => string>,
+    noFreeHours: "Tidak ada",
+    loading: "Memuat…",
     items: {
       esp32: "ESP32",
       hdmi: "HDMI/VGA Adapter",
@@ -90,7 +86,7 @@ const id = {
       search: { title: "Cari", description: "Temukan alat atau ruang lewat pencarian dan filter." },
       schedule: { title: "Pilih jadwal", description: "Slot jam untuk ruang, tanggal ambil dan kembali untuk alat." },
       request: { title: "Ajukan", description: "Isi keperluanmu. Kalau butuh surat, PDF-nya dibuat otomatis." },
-      pickup: { title: "Ambil", description: "Tunjukkan kode QR dan KTM ke pengelola saat mengambil." },
+      pickup: { title: "Ambil", description: "Datang dengan KTM, cukup sebut nama atau NIM ke pengelola." },
     } as Record<HomeStepKey, { title: string; description: string }>,
     levels: {
       direct: "Barang kecil seperti converter dan clicker. Isi form singkat, ambil pakai KTM.",
@@ -147,17 +143,13 @@ const en: typeof id = {
 
   todaySummary: {
     freeRoomsTitle: "Free rooms today",
-    viewSchedule: "View schedule",
+    viewSchedule: "Check availability",
     popularTitle: "Most borrowed",
     viewCatalog: "View catalog",
-    columns: { time: "Time", room: "Room", status: "Status", rank: "#", item: "Item / room", category: "Category", countShort: "Loans", countLong: "This week" },
-    slotStatus: { free: "Free", taken: "Booked", lastSlot: "1 slot left" },
-    rooms: {
-      discussionA: "Discussion Room 1",
-      seminar: "Auditorium",
-      pcLab: "Computer Lab 1, 8 seats",
-      discussionB: "Discussion Room 2",
-    },
+    columns: { time: "Free hours", room: "Room", status: "Status", rank: "#", item: "Item / room", category: "Category", countShort: "Loans", countLong: "This week" },
+    slotStatus: { free: () => "Available", few: (n) => `${n} h left`, full: () => "Full" },
+    noFreeHours: "None",
+    loading: "Loading…",
     items: {
       esp32: "ESP32",
       hdmi: "HDMI/VGA Adapter",
@@ -187,7 +179,7 @@ const en: typeof id = {
       search: { title: "Search", description: "Find a tool or room with search and filters." },
       schedule: { title: "Pick a time", description: "Time slots for rooms, pickup and return dates for tools." },
       request: { title: "Request", description: "Tell us what it is for. If you need a letter, the PDF is made for you." },
-      pickup: { title: "Pick up", description: "Show your QR code and student ID to the staff when you collect it." },
+      pickup: { title: "Pick up", description: "Come with your student ID and just give your name or student number." },
     },
     levels: {
       direct: "Small items like converters and clickers. Short form, pick up with your student ID.",

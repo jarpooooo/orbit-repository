@@ -16,13 +16,13 @@ import { ACCOUNT_TEXT } from "@/app/i18n/account";
 import { useText } from "@/app/components/layout/language";
 import { AuthField, AuthLayout, BUTTON, GoogleButton, OrDivider, describedBy, fieldClass } from "@/app/components/auth/auth-parts";
 import { REGISTER_TEXT } from "@/app/i18n/register";
+import { NIM_PATTERN } from "@/app/lib/nim";
 
 /** TODO: replace with the real study programs of DTEDI (value = what the backend expects). */
 const PROGRAMS: { value: string; label: string }[] = [{ value: "d4-trpl", label: "D4 TRPL" }];
 const OTHER_PROGRAM = "other";
 /** Cohort years offered in the list. */
 const YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
-const NIM_PATTERN = /^\d{2}\/\d{6}\/[A-Z]{2}\/\d{5}$/;
 const EMAIL_PATTERN = /^[^\s@]+@mail\.ugm\.ac\.id$/i;
 const MAX_KTM_BYTES = 2 * 1024 * 1024;
 

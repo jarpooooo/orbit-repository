@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   applicationName: SITE.name,
-  manifest: "/manifest.webmanifest", // written by scripts/static-files.mjs
   keywords: [
     "PinjamTEDI",
     "DTEDI",

@@ -2,32 +2,59 @@
 //
 // "Ringkasan hari ini" section (Figma node 1:3171, desktop 1440px):
 //   card 1 "Ruang kosong hari ini"  +  card 2 "Paling sering dipinjam".
-// No image assets. Simulated data lives in ROOM_SLOTS / POPULAR (replace with API data later).
+// Free rooms: a few rooms with today's free hours (custom hours, merged into ranges "08.00–11.00") from the same
+// simulation the booking steps use (getHourAvailability); a row links to that room's "Pilih jam" step.
+// "Today" is read in the browser (useSyncExternalStore, so the server render shows "Memuat…" instead of a wrong day).
+// POPULAR is still simulated (replace with API data later).
 // Text: HOME_TEXT.todaySummary (app/i18n/home.ts). Client component because the text follows the language preference.
 
 "use client";
 
 import Link from "next/link";
-import type { FacilityCategory } from "@/app/data/facilities";
+import { useSyncExternalStore } from "react";
+import { getHourAvailability, isClosedDay } from "@/app/data/availability";
+import { getFacility, type FacilityCategory } from "@/app/data/facilities";
 import CategoryBadge from "@/app/components/ui/category-badge";
-import { COMMON_TEXT, formatTimeRange } from "@/app/i18n/common";
-import { HOME_TEXT, type SlotStatus, type SummaryItemKey, type SummaryRoomKey } from "@/app/i18n/home";
+import { COMMON_TEXT } from "@/app/i18n/common";
+import { localizeFacility } from "@/app/i18n/facilities";
+import { HOME_TEXT, type SlotStatus, type SummaryItemKey } from "@/app/i18n/home";
 import { useLocale } from "@/app/components/layout/language";
+import { isHourPast, timeRangeLabel } from "@/app/lib/booking";
+import { toIsoDate } from "@/app/lib/date";
 
 /* ---------------------------------- data ---------------------------------- */
 
+/** same colors as the booking calendars: many free hours green, a few orange, none gray + red */
 const SLOT_CLASSES: Record<SlotStatus, string> = {
-  free: "bg-pair-green-bg text-pair-green-fg",
-  taken: "bg-pair-gray-bg text-pair-gray-fg",
-  lastSlot: "bg-pair-orange-bg text-pair-orange-fg",
+  free: "bg-status-available-bg text-status-available-fg",
+  few: "bg-status-attention-bg text-status-attention-fg",
+  full: "bg-status-unavailable-bg text-stock-out-fg",
 };
+/** a room with this many free hours left today or more is "Tersedia" */
+const MANY_HOURS = 5;
+const HOME_ROOMS = ["discussion-room-1", "auditorium", "computer-lab-1", "discussion-room-2"] as const;
 
-const ROOM_SLOTS: readonly { time: string; room: SummaryRoomKey; status: SlotStatus }[] = [
-  { time: "08.00–10.00", room: "discussionA", status: "free" },
-  { time: "10.00–12.00", room: "seminar", status: "taken" },
-  { time: "13.00–15.00", room: "pcLab", status: "free" },
-  { time: "15.00–17.00", room: "discussionB", status: "lastSlot" },
-];
+// "now" from the browser, rounded to the minute (stable snapshot); null on the server
+const subscribeClock = (onChange: () => void) => {
+  const id = setInterval(onChange, 60_000);
+  return () => clearInterval(id);
+};
+const minuteNow = () => Math.floor(Date.now() / 60_000);
+const serverNow = () => null;
+
+/** today's free hours of a room as ranges: [[8, 11], [14, 17]] = 08.00–11.00, 14.00–17.00 */
+function freeRanges(facilityId: string, now: Date) {
+  const iso = toIsoDate(now);
+  if (isClosedDay(iso)) return [];
+  const ranges: [number, number][] = [];
+  for (const { hour, status } of getHourAvailability(facilityId, iso)) {
+    if (status !== "free" || isHourPast(now, hour, now)) continue;
+    const last = ranges.at(-1);
+    if (last && last[1] === hour) last[1] = hour + 1;
+    else ranges.push([hour, hour + 1]);
+  }
+  return ranges;
+}
 
 /** Same top 4 as the "Paling sering dipinjam" page. */
 const POPULAR: readonly { item: SummaryItemKey; category: FacilityCategory; count: number }[] = [
@@ -79,6 +106,16 @@ export default function TodaySummary() {
   const { locale } = useLocale();
   const t = HOME_TEXT[locale].todaySummary;
   const common = COMMON_TEXT[locale];
+  const minute = useSyncExternalStore(subscribeClock, minuteNow, serverNow);
+  const now = minute === null ? null : new Date(minute * 60_000);
+  const rooms = HOME_ROOMS.flatMap((id) => {
+    const facility = getFacility(id);
+    if (!facility) return [];
+    const ranges = now ? freeRanges(id, now) : [];
+    const hours = ranges.reduce((sum, [a, b]) => sum + b - a, 0);
+    const status: SlotStatus = hours === 0 ? "full" : hours >= MANY_HOURS ? "free" : "few";
+    return [{ id, name: localizeFacility(facility, locale).name, ranges, hours, status }];
+  });
 
   return (
     <section className="bg-page px-5 pb-12 pt-12 sm:px-8 sm:pb-14 sm:pt-16 xl:px-[110px] xl:pb-[72px] xl:pt-[88px]">
@@ -91,20 +128,26 @@ export default function TodaySummary() {
               <span role="columnheader">{t.columns.room}</span>
               <span role="columnheader">{t.columns.status}</span>
             </div>
-            {ROOM_SLOTS.map((r, i) => (
-              <div key={r.time} role="row" className={`${ROOM_COLUMNS} ${ROW} ${rowBackground(i)}`}>
-                <span role="cell" className="text-[14px] font-bold leading-[1.3] text-ink sm:text-[16px]">
-                  {formatTimeRange(r.time, locale)}
+            {rooms.map((r, i) => (
+              <div key={r.id} role="row" className={`${ROOM_COLUMNS} ${ROW} ${rowBackground(i)}`}>
+                <span role="cell" className="text-[13px] font-bold leading-[1.35] text-ink sm:text-[15px]">
+                  {!now ? t.loading : r.ranges.length ? r.ranges.map(([a, b]) => timeRangeLabel(a, b, locale).replace(" – ", "–")).join(", ") : t.noFreeHours}
                 </span>
                 <span role="cell" className="min-w-0 text-[15px] font-normal leading-[1.55] text-ink sm:text-[16px]">
-                  {t.rooms[r.room]}
+                  {r.status === "full" || !now ? (
+                    r.name
+                  ) : (
+                    <Link href={`/catalog/${r.id}/schedule?hari=${toIsoDate(now)}`} className="font-bold underline decoration-2 underline-offset-4 hover:text-link">
+                      {r.name}
+                    </Link>
+                  )}
                 </span>
                 <span role="cell" className="flex">
-                  <span
-                    className={`whitespace-nowrap rounded-full px-3 py-[5px] text-[14px] font-bold leading-[1.3] ${SLOT_CLASSES[r.status]}`}
-                  >
-                    {t.slotStatus[r.status]}
-                  </span>
+                  {now && (
+                    <span className={`whitespace-nowrap rounded-full px-3 py-[5px] text-[14px] font-bold leading-[1.3] ${SLOT_CLASSES[r.status]}`}>
+                      {t.slotStatus[r.status](r.hours)}
+                    </span>
+                  )}
                 </span>
               </div>
             ))}

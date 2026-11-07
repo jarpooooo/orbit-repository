@@ -7,7 +7,7 @@ import { formatTimeRange } from "@/app/i18n/common";
 import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
 import { FACILITY_TEXT, type FacilityView } from "@/app/i18n/facilities";
 import type { Locale } from "@/app/i18n/locale";
-import { PICKUP_HOURS, RETURN_BEFORE, loanDays, sessionEnd, sessionLabel, sessionStart, type DailySelection, type SessionSelection } from "@/app/lib/booking";
+import { PICKUP_HOURS, RETURN_BEFORE, hourLabel, loanDays, timeRangeLabel, type DailySelection, type SessionSelection } from "@/app/lib/booking";
 import { dateNames, formatShortDate, parseIsoDate } from "@/app/lib/date";
 
 export type Rows = (readonly [label: string, value: string])[];
@@ -67,23 +67,23 @@ export const sessionRows = (s: SessionSelection, f: FacilityView, locale: Locale
   const t = BOOKING_TEXT[locale].summaryRows;
   return [
     [t.date, dayLabel(s.date, locale, true)],
-    [t.session, sessionLabel(s.sessionId, locale)],
+    [t.session, BOOKING_TEXT[locale].schedule.hoursValue(timeRangeLabel(s.startHour, s.endHour, locale), s.endHour - s.startHour)],
     [t.people, FACILITY_TEXT[locale].quantity(s.participants, f.unit)],
   ];
 };
 
 export const sessionLine = (s: SessionSelection, f: FacilityView, locale: Locale) =>
-  [dayLabel(s.date, locale), sessionLabel(s.sessionId, locale), FACILITY_TEXT[locale].quantity(s.participants, f.unit)].join(" · ");
+  [dayLabel(s.date, locale), timeRangeLabel(s.startHour, s.endHour, locale), FACILITY_TEXT[locale].quantity(s.participants, f.unit)].join(" · ");
 
 /** last "Langkah berikutnya" item: when the room is used */
-export const sessionUseDetail = (s: SessionSelection, locale: Locale) => `${dayLabel(s.date, locale, true)}, ${sessionStart(s.sessionId, locale)}`;
+export const sessionUseDetail = (s: SessionSelection, locale: Locale) => `${dayLabel(s.date, locale, true)}, ${hourLabel(s.startHour, locale)}`;
 
 /** "Selesai" step */
 export const sessionFinishDetail = (_s: SessionSelection, locale: Locale) => BOOKING_TEXT[locale].summary.steps.afterSession;
 
 export const sessionLetterPeriod = (s: SessionSelection): LetterPeriod => ({
   from: s.date,
-  fromTime: sessionStart(s.sessionId),
+  fromTime: hourLabel(s.startHour),
   until: s.date,
-  untilTime: sessionEnd(s.sessionId),
+  untilTime: hourLabel(s.endHour),
 });

@@ -55,7 +55,7 @@ function fromDocument(seed: Facility, d: Record<string, unknown>): Facility {
     borrowedUntil: isIsoDate(d.borrowedUntil) ? d.borrowedUntil : undefined,
     bookingMode: oneOf(MODES, d.bookingMode) ? d.bookingMode : seed.bookingMode,
     maxDays: isCount(d.maxDays, 1) ? d.maxDays : seed.maxDays,
-    sessions: Array.isArray(d.sessions) && d.sessions.every((s) => isCount(s) && s <= 3) ? (d.sessions as number[]) : seed.sessions,
+    maxHours: isCount(d.maxHours, 1) && d.maxHours <= 9 ? d.maxHours : seed.maxHours,
   };
 }
 

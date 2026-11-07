@@ -1,8 +1,10 @@
 // app/components/how-to-borrow/how-to-borrow-content.tsx  (used by app/how-to-borrow/page.tsx)
 //
 // "Cara Pinjam" page content (Figma node 5:847, mislabeled "08 Notifikasi (panel terbuka)" in Figma):
-//   1) 3 permission-level cards (Langsung / Menunggu verifikasi / Perlu surat)
+//   1) 3 permission-level cards (Langsung / Menunggu verifikasi / Butuh surat)
 //   2) 5 step cards: Jelajah → Pilih → Jadwal → Ajukan → Ringkasan
+//   3) #ketentuan: the borrowing rules (the same list as the request form, BOOKING_TEXT.request.rules);
+//      the summary page links here
 // Deviation from Figma: the step texts there are shifted by one and steps 4 & 5 are identical,
 // so the texts were adjusted to match the step names and the actual app flow.
 // Text: HOW_TO_BORROW_TEXT (app/i18n/how-to-borrow.ts), step names from LAYOUT_TEXT.stepper, permission texts
@@ -13,6 +15,7 @@
 import Breadcrumb from "@/app/components/layout/breadcrumb";
 import StatusBadge from "@/app/components/ui/status-badge";
 import type { PermissionLevel } from "@/app/data/facilities";
+import { BOOKING_TEXT } from "@/app/i18n/booking-flow";
 import { FACILITY_TEXT } from "@/app/i18n/facilities";
 import { HOW_TO_BORROW_TEXT } from "@/app/i18n/how-to-borrow";
 import { LAYOUT_TEXT } from "@/app/i18n/site-layout";
@@ -74,6 +77,29 @@ export default function HowToBorrowContent() {
               </li>
             ))}
           </ol>
+        </section>
+
+        {/* Rules (target of "Lihat ketentuan lengkap" on the summary page) */}
+        <section id="ketentuan" aria-labelledby="rules-heading" className="mt-6 w-full scroll-mt-[120px] sm:mt-10">
+          <h2 id="rules-heading" className="font-display text-[32px] font-normal leading-none text-ink sm:text-[40px]">
+            {t.rulesHeading}
+          </h2>
+          <p className="mt-2 max-w-[720px] text-[15px] leading-[1.5] text-ink-body sm:text-[17px]">{t.rulesLead}</p>
+          <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-[35px]">
+            {(["daily", "session"] as const).map((mode) => (
+              <div
+                key={mode}
+                className="flex flex-col gap-3 rounded-[22px] border-2 border-line-strong bg-surface p-[22px] shadow-[5px_5px_0_0_var(--color-shadow)]"
+              >
+                <h3 className="font-display text-[22px] font-normal leading-[normal] text-ink">{t.rulesGroups[mode]}</h3>
+                <ul className="flex list-disc flex-col gap-2 pl-5 text-[15px] leading-[1.5] text-ink-body">
+                  {BOOKING_TEXT[locale].request.rules[mode].map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </main>

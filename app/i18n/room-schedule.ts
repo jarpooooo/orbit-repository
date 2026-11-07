@@ -1,6 +1,6 @@
 // app/i18n/room-schedule.ts
 //
-// Text for "Lihat jadwal" (app/room-schedule/page.tsx) and "Paling sering dipinjam"
+// Text for "Cek ketersediaan" (app/room-schedule/page.tsx) and "Paling sering dipinjam"
 // (app/room-schedule/most-borrowed/page.tsx).
 
 import type { Dictionary } from "./locale";
@@ -9,33 +9,37 @@ export type PeriodKey = "week" | "month" | "semester";
 
 const id = {
   schedule: {
-    title: "Lihat jadwal",
-    lead: "Cek sesi yang masih kosong sebelum mengajukan. Klik sesi hijau untuk lanjut.",
+    title: "Cek ketersediaan",
+    lead: "Lihat jam ruangan dan stok barang yang masih kosong, lalu klik yang hijau untuk lanjut.",
     mostBorrowed: "Paling sering dipinjam",
     prevWeek: "Pekan sebelumnya",
     nextWeek: "Pekan berikutnya",
     chooseDay: "Pilih hari",
     filterLabel: "Filter kategori",
-    tableLabel: (day: string) => `Jadwal ${day}`,
+    roomsTitle: (day: string) => `Ruangan · ${day}`,
+    roomsLead: "Per jam, 08.00–17.00. Klik blok hijau untuk memilih jam di ruangan itu.",
+    itemsTitle: "Barang · pekan ini",
+    itemsLead: "Stok per hari. Klik hari yang hijau untuk mulai meminjam.",
     facilityColumn: "Fasilitas",
     empty: "Tidak ada fasilitas di kategori ini.",
     cell: {
-      past: "Lewat",
-      pending: ["Menunggu", "verifikasi"] as [string, string],
       free: "Kosong",
       taken: "Terisi",
+      pending: "Menunggu verifikasi",
+      past: "Lewat",
       soldOut: "Habis",
-      available: "tersedia",
+      closed: "Tutup",
     },
-    requestCell: (facility: string, session: string, state: string) => `${facility}, ${session}, ${state}. Ajukan sesi ini`,
+    openRoom: (facility: string, range: string) => `${facility}, ${range} kosong. Pilih jam`,
+    openItem: (facility: string, day: string, state: string) => `${facility}, ${day}, ${state}. Pinjam`,
     legendLabel: "Keterangan:",
-    legend: { available: "Tersedia", pending: "Menunggu verifikasi", full: "Terisi / habis" },
+    legend: { available: "Kosong / tersedia", few: "Stok sedikit", pending: "Menunggu verifikasi", full: "Terisi / habis" },
   },
 
   mostBorrowed: {
     title: "Paling sering dipinjam",
     lead: "Peringkat fasilitas yang paling banyak diajukan mahasiswa.",
-    viewSchedule: "Lihat jadwal",
+    viewSchedule: "Cek ketersediaan",
     periodLabel: "Periode",
     periods: { week: "Minggu ini", month: "Bulan ini", semester: "Semester" } as Record<PeriodKey, string>,
     podiumLabel: "Peringkat 1 sampai 3",
@@ -51,33 +55,37 @@ const id = {
 
 const en: typeof id = {
   schedule: {
-    title: "View schedule",
-    lead: "Check which sessions are still free before you request. Click a green session to continue.",
+    title: "Check availability",
+    lead: "See which room hours and items are still free, then click a green one to continue.",
     mostBorrowed: "Most borrowed",
     prevWeek: "Previous week",
     nextWeek: "Next week",
     chooseDay: "Choose a day",
     filterLabel: "Category filter",
-    tableLabel: (day) => `Schedule for ${day}`,
+    roomsTitle: (day) => `Rooms · ${day}`,
+    roomsLead: "By the hour, 08:00–17:00. Click a green block to choose hours in that room.",
+    itemsTitle: "Items · this week",
+    itemsLead: "Stock per day. Click a green day to start borrowing.",
     facilityColumn: "Facility",
     empty: "No facilities in this category.",
     cell: {
-      past: "Passed",
-      pending: ["Awaiting", "verification"],
       free: "Free",
       taken: "Booked",
+      pending: "Awaiting verification",
+      past: "Passed",
       soldOut: "Sold out",
-      available: "available",
+      closed: "Closed",
     },
-    requestCell: (facility, session, state) => `${facility}, ${session}, ${state}. Request this session`,
+    openRoom: (facility, range) => `${facility}, ${range} free. Choose hours`,
+    openItem: (facility, day, state) => `${facility}, ${day}, ${state}. Borrow`,
     legendLabel: "Legend:",
-    legend: { available: "Available", pending: "Awaiting verification", full: "Booked / sold out" },
+    legend: { available: "Free / in stock", few: "Low stock", pending: "Awaiting verification", full: "Booked / sold out" },
   },
 
   mostBorrowed: {
     title: "Most borrowed",
     lead: "Facilities that students request the most.",
-    viewSchedule: "View schedule",
+    viewSchedule: "Check availability",
     periodLabel: "Period",
     periods: { week: "This week", month: "This month", semester: "Semester" },
     podiumLabel: "Ranks 1 to 3",
