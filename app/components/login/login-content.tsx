@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { useText } from "@/app/components/layout/language";
-import { DEMO_ENABLED, sendPasswordReset, signInDemo, signInWithEmail, signInWithGoogle, type AuthErrorKey } from "@/app/lib/auth";
+import { DEMO_ENABLED, roleForEmail, sendPasswordReset, signInDemo, signInWithEmail, signInWithGoogle, type AuthErrorKey } from "@/app/lib/auth";
 import { ACCOUNT_TEXT } from "@/app/i18n/account";
 import { AuthField, AuthLayout, BUTTON, GoogleButton, OrDivider, describedBy, fieldClass } from "@/app/components/auth/auth-parts";
 import { LOGIN_TEXT } from "@/app/i18n/login";
@@ -65,7 +65,9 @@ export default function LoginContent() {
     if (outcome === null) {
       // only same-site paths, so ?next= cannot send people to another website
       const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") && !next.startsWith("//") ? next : "/");
+      const isAdmin = kind === "email" && roleForEmail(fields.email) === "admin";
+      const target = next?.startsWith("/") && !next.startsWith("//") ? next : (isAdmin ? "/admin" : "/");
+      router.push(target);
       return;
     }
     if (outcome !== "cancelled") setResult(outcome);

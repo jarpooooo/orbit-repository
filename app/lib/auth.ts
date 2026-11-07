@@ -70,7 +70,7 @@ function toState(user: User | null): AuthState {
       name: user.displayName || user.email!.split("@")[0],
       email: user.email!,
       photoUrl: user.photoURL,
-      emailVerified: user.emailVerified,
+      emailVerified: role === "admin" ? true : user.emailVerified,
     },
   };
 }

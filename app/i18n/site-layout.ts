@@ -12,6 +12,7 @@ export type PageKey =
   | "roomSchedule"
   | "howToBorrow"
   | "myRequests"
+  | "admin"
   | "mostBorrowed"
   | "rules"
   | "notifications"
@@ -28,6 +29,7 @@ const id = {
     roomSchedule: "Cek Ketersediaan",
     howToBorrow: "Cara Pinjam",
     myRequests: "Pengajuan Saya",
+    admin: "Panel Admin",
     mostBorrowed: "Paling Sering Dipinjam",
     rules: "Ketentuan Peminjaman",
     notifications: "Notifikasi",
@@ -109,6 +111,7 @@ const en: typeof id = {
     roomSchedule: "Check Availability",
     howToBorrow: "How to Borrow",
     myRequests: "My Requests",
+    admin: "Admin Panel",
     mostBorrowed: "Most Borrowed",
     rules: "Borrowing Rules",
     notifications: "Notifications",

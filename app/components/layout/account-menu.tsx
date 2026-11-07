@@ -90,15 +90,17 @@ export default function AccountMenu() {
             <span className="mt-1 w-fit rounded-md bg-pair-gray-bg px-2 py-[3px] text-[12px] font-extrabold text-pair-gray-fg">
               {t.roles[session.role]}
             </span>
-            {!session.emailVerified && <span className="mt-1 text-[12px] font-bold text-status-attention-fg">{t.unverified}</span>}
+            {!session.emailVerified && session.role !== "admin" && (
+              <span className="mt-1 text-[12px] font-bold text-status-attention-fg">{t.unverified}</span>
+            )}
           </div>
           {session.role === "admin" && (
             <Link
               href="/admin"
               onClick={() => setOpen(false)}
-              className="rounded-[12px] border-2 border-line-strong bg-surface px-3 py-2 text-[14px] font-extrabold text-ink hover:bg-surface-warm"
+              className="rounded-[12px] border-2 border-line-strong bg-brand-secondary px-3 py-2 text-center text-[14px] font-extrabold text-on-secondary shadow-[0_2px_0_0_var(--color-shadow)] transition-transform hover:-translate-y-0.5 active:translate-y-[1px]"
             >
-              {t.adminPanel}
+              {t.adminPanel} →
             </Link>
           )}
           {/* <Link

@@ -73,8 +73,19 @@ export default function Navbar() {
   const router = useRouter();
   const text = useText(LAYOUT_TEXT);
   const t = text.navbar;
-  const signedIn = useSession() !== null;
+  const session = useSession();
+  const signedIn = session !== null;
   const menuId = useId();
+
+  const navLinks =
+    session?.role === "admin"
+      ? [
+          { page: "catalog" as const, href: "/catalog" },
+          { page: "roomSchedule" as const, href: "/room-schedule" },
+          { page: "howToBorrow" as const, href: "/how-to-borrow" },
+          { page: "admin" as const, href: "/admin" },
+        ]
+      : NAV_LINKS;
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -147,7 +158,7 @@ export default function Navbar() {
 
           {/* Desktop menu */}
           <ul className="hidden items-center gap-1 whitespace-nowrap 2xl:gap-4 text-[16px] font-bold leading-[1.3] text-ink xl:flex">
-            {NAV_LINKS.map((l) => (
+            {navLinks.map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}
@@ -218,7 +229,7 @@ export default function Navbar() {
                 <SearchField query={query} onQueryChange={setQuery} onSubmit={onSearch} className="flex" />
 
                 <ul className="mt-3 flex flex-col gap-2">
-                  {NAV_LINKS.map((l) => (
+                  {navLinks.map((l) => (
                     <li key={l.href}>
                       <Link
                         href={l.href}

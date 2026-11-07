@@ -9,7 +9,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { CATEGORY_STYLE } from "@/app/design/category-style";
 import FacilityIllustration from "@/app/components/ui/facility-illustration";
 import Breadcrumb from "@/app/components/layout/breadcrumb";
@@ -19,6 +20,7 @@ import { MY_REQUESTS_TEXT } from "@/app/i18n/my-requests";
 import { useLocale } from "@/app/components/layout/language";
 import { modeOf } from "@/app/components/catalog/booking/registry";
 import { useFacilities } from "@/app/lib/facility-store";
+import { useSession } from "@/app/lib/auth";
 import { REQUEST_STATUS_COLORS, cancelRequest, isCancellable, useMyRequests } from "@/app/lib/requests";
 
 const PRESS_BUTTON =
@@ -29,10 +31,18 @@ const PANEL = "w-full rounded-[18px] border-2 border-line-strong bg-surface px-5
 export default function MyRequestsPage() {
   const { locale } = useLocale();
   const t = MY_REQUESTS_TEXT[locale];
+  const session = useSession();
+  const router = useRouter();
   const state = useMyRequests();
   const facilities = useFacilities();
   const [pending, setPending] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.role === "admin") {
+      router.replace("/admin");
+    }
+  }, [session, router]);
 
   async function cancel(code: string) {
     if (!window.confirm(t.confirmCancel(code))) return;
